@@ -1,0 +1,37 @@
+{
+  "name": "proxyapinode",
+  "version": "1.0.0",
+  "description": "Hyperledger connection",
+  "main": "medisotAPIServer.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "chmod a+x init.sh && ./init.sh && pm2 start medisotUsersAPIServer.js",
+    "stop": "node deleteKeys.js && pm2 delete medisotUsersAPIServer.js"
+  },
+  "dependencies": {
+    "async": "^2.6.1",
+    "aws-sdk": "^2.608.0",
+    "basic-auth": "^2.0.0",
+    "bcrypt": "^3.0.0",
+    "bcryptjs": "*",
+    "body-parser": "*",
+    "cookie-parser": "^1.4.3",
+    "cors": "*",
+    "express": "*",
+    "express-bearer-token": "^2.2.0",
+    "express-jwt": "^5.3.1",
+    "fabric-client": "1.4.4",
+    "grpc": "1.6.0",
+    "jsonwebtoken": "^8.3.0",
+    "log4js": "^3.0.5",
+    "passport": "^0.4.0",
+    "passport-jwt": "^4.0.0",
+    "passport-local": "^1.0.0",
+    "request": "^2.88.0",
+    "underscore": "^1.9.1",
+    "fabric-ca-client": "1.4.0",
+    "fabric-network": "1.4.4"
+  },
+  "author": "Abhijit Ghosh, Prasanth Sundaravelu",
+  "license": "ISC"
+}

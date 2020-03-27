@@ -1,0 +1,69 @@
+version: "2"
+services:
+  ca:
+    image: hyperledger/fabric-ca:${IMAGE_TAG}
+    environment:
+    - FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server
+    - FABRIC_CA_SERVER_TLS_ENABLED=true
+    - GODEBUG=netdns=go
+    command: sh -c 'fabric-ca-server start -b admin:adminpw -d'
+  couchdb:
+    image: hyperledger/fabric-couchdb:${COUCH_TAG}
+  kafka:
+    image: hyperledger/fabric-kafka:${KAFKA_TAG}
+    restart: always
+    environment:
+    - KAFKA_MESSAGE_MAX_BYTES=103809024
+    - KAFKA_REPLICA_FETCH_MAX_BYTES=103809024
+    - KAFKA_UNCLEAN_LEADER_ELECTION_ENABLE=false
+    - GODEBUG=netdns=go
+    ports:
+    - "9092"
+  orderer:
+    image: hyperledger/fabric-orderer:${IMAGE_TAG}
+    environment:
+    - ORDERER_GENERAL_LOGLEVEL=debug
+    - ORDERER_GENERAL_LISTENADDRESS=0.0.0.0
+    - ORDERER_GENERAL_GENESISMETHOD=file
+    - ORDERER_GENERAL_GENESISFILE=/var/hyperledger/orderer/genesis.block
+    - ORDERER_GENERAL_LOCALMSPID=OrdererMSP
+    - ORDERER_GENERAL_LOCALMSPDIR=/var/hyperledger/orderer/msp
+    - ORDERER_GENERAL_TLS_ENABLED=true
+    - ORDERER_GENERAL_TLS_PRIVATEKEY=/var/hyperledger/orderer/tls/server.key
+    - ORDERER_GENERAL_TLS_CERTIFICATE=/var/hyperledger/orderer/tls/server.crt
+    - ORDERER_GENERAL_TLS_ROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
+    - ORDERER_KAFKA_RETRY_SHORTINTERVAL=1s
+    - ORDERER_KAFKA_RETRY_SHORTTOTAL=30s
+    - ORDERER_KAFKA_VERBOSE=true
+    - ORDERER_KAFKA_VERSION=0.9.0.1
+    - GODEBUG=netdns=go
+    working_dir: /opt/gopath/src/github.com/hyperledger/fabric
+    command: orderer
+  peer:
+    image: hyperledger/fabric-peer:${IMAGE_TAG}
+    environment:
+    - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
+    - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=${COMPOSE_PROJECT_NAME}_fabricnetwork
+    - CORE_LOGGING_LEVEL=DEBUG
+    - CORE_PEER_TLS_ENABLED=true
+    - CORE_PEER_ENDORSER_ENABLED=true
+    - CORE_PEER_GOSSIP_USELEADERELECTION=false
+    - CORE_PEER_GOSSIP_ORGLEADER=true
+    - CORE_PEER_PROFILE_ENABLED=true
+    - CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/fabric/tls/server.crt
+    - CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/fabric/tls/server.key
+    - CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/fabric/tls/ca.crt
+    # - CORE_PEER_DISCOVERY_ENABLED=false
+    - FABRIC_SDK_DISCOVERY=false
+    - GODEBUG=netdns=go
+    working_dir: /opt/gopath/src/github.com/hyperledger/fabric/peer
+    command: peer node start
+  zookeeper:
+    image: hyperledger/fabric-zookeeper:${ZK_TAG}
+    restart: always
+    environment:
+    - GODEBUG=netdns=go
+    ports:
+    - "2181"
+    - "2888"
+    - "3888"
