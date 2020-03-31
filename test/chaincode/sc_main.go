@@ -46,6 +46,8 @@ func (sc *TestSmartContract) handleFunctions(stub shim.ChaincodeStubInterface) p
 		return sc.ReadState(stub)
 	case "DeleteState":
 		return sc.DeleteState(stub)
+	case "QueryState":
+		return sc.QueryState(stub)
 	}
 
 	return shim.Error(fmt.Sprintf("Invalid function provided: %v", function))
@@ -165,5 +167,35 @@ func (sc *TestSmartContract) DeleteState(stub shim.ChaincodeStubInterface) pb.Re
 
 	output := fmt.Sprintf("Deleted state successfully: %v", input.ID)
 	return shim.Success([]byte(output))
+
+}
+
+//
+func (sc *TestSmartContract) QueryState(stub shim.ChaincodeStubInterface) pb.Response {
+	var err error
+
+	_, args := stub.GetFunctionAndParameters()
+	if len(args) != 1 {
+		return shim.Error("Invalid no. of arguments - Expecting 1.")
+	}
+
+	var input QueryInput
+	inputJSON := args[0]
+
+	err = json.Unmarshal([]byte(inputJSON), &input)
+	if err != nil {
+		return shim.Error(err.Error())
+	}
+
+	result, err := sc.TestStructiState.Query(stub, input.QueryString)
+	if err != nil {
+		return shim.Error(err.Error())
+	}
+
+	mr, err := json.Marshal(result.([]TestStruct))
+	if err != nil {
+		return shim.Error(err.Error())
+	}
+	return shim.Success(mr)
 
 }

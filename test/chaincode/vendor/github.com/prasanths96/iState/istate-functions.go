@@ -6,11 +6,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/hyperledger/fabric/core/chaincode/shim"
+	"reflect"
 )
 
 type iState struct {
 	structRef         interface{}
 	fieldJSONIndexMap map[string]int
+	jsonFieldKindMap  map[string]reflect.Kind
+	mapKeyKindMap     map[string]reflect.Kind
+	depthKindMap      map[string]reflect.Kind
 	primaryIndex      int
 }
 
@@ -23,19 +27,38 @@ func NewiState(object interface{}) (iStateInterface IStateInterface, iStateErr E
 	fmt.Printf("FILLEDREF: %v\n", filledRef)
 	// A map of JSON fieldname & it's position in the struct
 	fieldJSONIndexMap := make(map[string]int)
-	generateFieldJSONIndexMap(filledRef, fieldJSONIndexMap)
-	i, tiStateErr := getPrimaryFieldIndex(filledRef)
-	if tiStateErr != nil {
-		iStateErr = tiStateErr
+	jsonFieldKindMap := make(map[string]reflect.Kind)
+	mapKeyKindMap := make(map[string]reflect.Kind)
+	depthKindMap := make(map[string]reflect.Kind)
+	iStateErr = generateFieldJSONIndexMap(filledRef, fieldJSONIndexMap)
+	if iStateErr != nil {
+		return
+	}
+	iStateErr = generatejsonFieldKindMap(filledRef, jsonFieldKindMap, mapKeyKindMap)
+	if iStateErr != nil {
+		return
+	}
+	iStateErr = generateDepthKindMap(filledRef, depthKindMap)
+	if iStateErr != nil {
+		return
+	}
+	var i int
+	i, iStateErr = getPrimaryFieldIndex(filledRef)
+	if iStateErr != nil {
 		return
 	}
 	iStateInterface = &iState{
 		structRef:         filledRef,
 		fieldJSONIndexMap: fieldJSONIndexMap,
+		jsonFieldKindMap:  jsonFieldKindMap,
+		mapKeyKindMap:     mapKeyKindMap,
+		depthKindMap:      depthKindMap,
 		primaryIndex:      i,
 	}
-	fmt.Printf("Generated fieldJSONIndexMap: %v\n", fieldJSONIndexMap)
-	fmt.Println("MEW PRIMARY INDEX:", i)
+	fmt.Println("JSON FIELD KIND MAP", jsonFieldKindMap)
+	fmt.Println("MAP KEY KIND MAP", mapKeyKindMap)
+	fmt.Println("DEPTH KIND MAP", depthKindMap)
+
 	return
 }
 
@@ -43,6 +66,11 @@ func NewiState(object interface{}) (iStateInterface IStateInterface, iStateErr E
 func (iState *iState) CreateState(stub shim.ChaincodeStubInterface, object interface{}) (iStateErr Error) {
 	iStateLogger.Infof("Inside CreateState")
 	defer iStateLogger.Infof("Exiting CreateState")
+
+	if reflect.TypeOf(object) != reflect.TypeOf(iState.structRef) {
+		iStateErr = NewError(nil, 1014, reflect.TypeOf(iState.structRef), reflect.TypeOf(object))
+		return
+	}
 
 	// Find primary key
 	keyref := iState.getPrimaryKey(object)
@@ -98,6 +126,11 @@ func (iState *iState) ReadState(stub shim.ChaincodeStubInterface, primaryKey int
 func (iState *iState) UpdateState(stub shim.ChaincodeStubInterface, object interface{}) (iStateErr Error) {
 	iStateLogger.Infof("Inside UpdateState")
 	defer iStateLogger.Infof("Exiting UpdateState")
+
+	if reflect.TypeOf(object) != reflect.TypeOf(iState.structRef) {
+		iStateErr = NewError(nil, 1015, reflect.TypeOf(iState.structRef), reflect.TypeOf(object))
+		return
+	}
 
 	// Find primary key
 	keyref := iState.getPrimaryKey(object)

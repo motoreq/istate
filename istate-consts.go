@@ -17,7 +17,10 @@ const (
 	positiveNum = "0"
 	negativeNum = "1"
 
-	separator = "_"
+	star = "*"
+	dot  = "."
+
+	seperator = "_"
 )
 
 var numDigits = map[int]string{

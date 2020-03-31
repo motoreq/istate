@@ -9,6 +9,14 @@
 	Rich Queries when using levelDB as state db.
 	Note: To enable high performance queries, it has an indexing mechanism
 	that may take extra storage space.
+
+	Known Limitations and Issues:
+
+
+	Fixed:
+		- Indexing: A map with integer / number as key type will still be
+    considered as string when indexing.
+
 */
 
 package istate

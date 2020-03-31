@@ -4,11 +4,14 @@ type TestStruct struct {
 	DocType          string                          `json:"docType" istate:"TestStruct_docType"`
 	ID               string                          `json:"id" istate:"TestStruct_id" primary:"true"`
 	AnArray          []int                           `json:"anArray" istate:"TestStruct_anArray"`
-	AMap             map[string]int                  `json:"aMap" istate:"TestStruct_aMap"`
+	AMap             map[int]int                     `json:"aMap" istate:"TestStruct_aMap"`
 	AStruct          SomeStruct                      `json:"aStruct" istate:"TestStruct_aStruct"`
 	AnInt            int                             `json:"anInt" istate:"TestStruct_anInt"`
+	A3DArray         [][][]int                       `json:"a3DArray" istate:"TestStruct_a3DArray"`
+	A2DArray         [][]int                         `json:"a2DArray" istate:"TestStruct_a2DArray"`
 	AComplexMapSlice []map[string][]map[int]struct{} `json:"aComplexMapSlice" istate:"TestStruct_aComplexMapSlice"`
-	AMapStruct       map[string]SomeStruct           `json:"aMapStruct" istate:"TestStruct_aMapStruct"`
+	AMapStruct       []map[string]SomeStruct         `json:"aMapStruct" istate:"TestStruct_aMapStruct"`
+	AMultiStruct     MultiStruct                     `json:"aMultiStruct" istate:"TestStruct_aMultiStruct"`
 }
 
 // type TestStruct struct {
@@ -23,10 +26,18 @@ type SomeStruct struct {
 	Val string `json:"val"`
 }
 
+type MultiStruct struct {
+	MultiVal SomeStruct `json:"multiVal"`
+}
+
 type ReadStateInput struct {
 	ID string `json:"id"`
 }
 
 type DeleteStateInput struct {
 	ID string `json:"id"`
+}
+
+type QueryInput struct {
+	QueryString string `json:""queryString`
 }

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	// "github.com/hyperledger/fabric/core/chaincode/shim"
 	"reflect"
-	"strconv"
+	// "strconv"
 	"strings"
 )
 
@@ -22,7 +22,15 @@ func (iState *iState) generateRelationalTables(obj map[string]interface{}, keyre
 		if tableName == "" {
 			continue
 		}
-		newTable = iState.traverseAndGenerateRelationalTable(val, tableName, keyref, index)
+		jsonTag := field.Tag.Get("json")
+		if jsonTag == "" {
+			iStateErr = NewError(nil, 2001, field.Name, reflect.TypeOf(iState.structRef))
+			return
+		}
+		newTable, iStateErr = iState.traverseAndGenerateRelationalTable(val, []interface{}{tableName}, jsonTag, tableName, keyref)
+		if iStateErr != nil {
+			return
+		}
 		if len(newTable) != 0 {
 			relationalTables = append(relationalTables, newTable)
 		}
@@ -31,59 +39,117 @@ func (iState *iState) generateRelationalTables(obj map[string]interface{}, keyre
 }
 
 //
-func (iState *iState) traverseAndGenerateRelationalTable(val interface{}, tableName string, keyref string, previousKey string, depth ...int) (newTable []map[string]interface{}) {
+func (iState *iState) traverseAndGenerateRelationalTable(val interface{}, tableName []interface{}, jsonTag string, iStateTag string, keyref string, meta ...interface{}) (newTable []map[string]interface{}, iStateErr Error) {
 	iStateLogger.Debugf("Inside traverseAndGenerateRelationalTable")
 	defer iStateLogger.Debugf("Exiting traverseAndGenerateRelationalTable")
+	// meta[0] Universal depth
+	// meta[1] appended with "_" (Previous key)
+	genericTableName := []interface{}{}
+	switch len(meta) > 1 {
+	case true:
+		genericTableName = meta[1].([]interface{})
+	default:
+		meta = []interface{}{0, tableName}
+	}
 	switch kind := reflect.ValueOf(val).Kind(); kind {
 	case reflect.Slice, reflect.Array:
 		sliceLen := reflect.ValueOf(val).Len()
-		newTableName := tableName
-		switch {
-		case len(depth) != 0:
-			newTableName += separator + strconv.Itoa(depth[0])
-			depth[0] = depth[0] + 1
-		default:
-			depth = []int{0}
-		}
+		newTableName := append(tableName, "")
 		for i := 0; i < sliceLen; i++ {
 			innerVal := reflect.ValueOf(val).Index(i).Interface()
-			innerTables := iState.traverseAndGenerateRelationalTable(innerVal, newTableName, keyref, previousKey, depth...)
+			var innerTables []map[string]interface{}
+			innerTables, iStateErr = iState.traverseAndGenerateRelationalTable(innerVal, newTableName, jsonTag, iStateTag, keyref, meta[0].(int)+1, append(genericTableName, ""))
+			if iStateErr != nil {
+				return
+			}
 			if len(innerTables) != 0 {
 				newTable = append(newTable, innerTables...)
 			}
 		}
+		// For empty slice as leaf value
+		if sliceLen == 0 {
+			tableNameString := joinStringInterfaceSlice(tableName, seperator)
+			tableNameString = removeLastSeparators(tableNameString)
+			if tableNameString == iStateTag {
+				break
+			}
+			newRow := make(map[string]interface{})
+			newRow[docTypeField] = tableName
+			newRow[valueField] = ""
+			newRow[keyRefField] = keyref
+			newTable = append(newTable, newRow)
+		}
 	case reflect.Map:
-		prefix := previousKey + separator
 		mapKeys := reflect.ValueOf(val).MapKeys()
+		currentDepth := joinStringInterfaceSlice(append([]interface{}{jsonTag}, genericTableName...), seperator) + seperator
+		fmt.Println("SEARCHED CURRENT DEPTH: ", currentDepth)
+
 		for i := 0; i < len(mapKeys); i++ {
-			fmt.Println("INITIAL PREFIX", prefix)
-			curKey := prefix + mapKeys[i].String()
-			keyToSendNext := curKey
-			// If currentKey doesn't exist in fieldjsonindexmap, then its a real map, not a struct
-			_, ok := iState.fieldJSONIndexMap[curKey]
-			fmt.Printf("IS IT A MAP? %v, %v\n", !ok, curKey)
-			if _, ok := iState.fieldJSONIndexMap[curKey]; !ok {
-				newRow := make(map[string]interface{})
-				newRow[docTypeField] = tableName
-				newRow[valueField] = mapKeys[i].String()
-				newRow[keyRefField] = keyref
-				newTable = append(newTable, newRow)
-				keyToSendNext = prefix
+			var nextInitialTableName []interface{}
+			var convertedMapKey interface{} = mapKeys[i].String()
+			// This is enough to see if it is realmap or not
+			switch kind, realMap := iState.depthKindMap[currentDepth]; realMap {
+			case true:
+				convertedMapKey, iStateErr = convertToPrimitiveType(mapKeys[i].String(), kind)
+				if iStateErr != nil {
+					return
+				}
+				nextInitialTableName = append(genericTableName, "")
+				if meta[0].(int) > 1 {
+					newRow := make(map[string]interface{})
+					newGenericTableName := []interface{}{iStateTag}
+					newRow[docTypeField] = append(newGenericTableName, genericTableName...)
+					newRow[valueField] = mapKeys[i].String()
+					newRow[keyRefField] = keyref
+					newTable = append(newTable, newRow)
+				}
+			default:
+				nextInitialTableName = append(genericTableName, convertedMapKey)
 			}
 
 			innerVal := reflect.ValueOf(val).MapIndex(mapKeys[i]).Interface()
-			suffix := fmt.Sprintf("%s", mapKeys[i].Interface())
-			fmt.Println("KEY TO SEND NEXT: ", keyToSendNext)
-			innerTables := iState.traverseAndGenerateRelationalTable(innerVal, tableName+separator+suffix, keyref, keyToSendNext)
+			var innerTables []map[string]interface{}
+			innerTables, iStateErr = iState.traverseAndGenerateRelationalTable(innerVal, append(tableName, convertedMapKey), jsonTag, iStateTag, keyref, meta[0].(int)+1, nextInitialTableName)
+			if iStateErr != nil {
+				return
+			}
 			if len(innerTables) != 0 {
 				newTable = append(newTable, innerTables...)
 			}
 
+		}
+		// For empty structs as leaf value
+		if len(mapKeys) == 0 {
+			tableNameString := joinStringInterfaceSlice(tableName, seperator)
+			tableNameString = removeLastSeparators(tableNameString)
+			if tableNameString == iStateTag {
+				break
+			}
+			newRow := make(map[string]interface{})
+			newRow[docTypeField] = tableName
+			newRow[valueField] = ""
+			newRow[keyRefField] = keyref
+			newTable = append(newTable, newRow)
 		}
 	default:
 		if val == nil {
 			break
 		}
+
+		newGenericTableName := []interface{}{iStateTag}
+		newGenericTableName = append(newGenericTableName, meta[1].([]interface{})...)
+
+		newGenericTableNameString := joinStringInterfaceSlice(newGenericTableName, seperator) // Here genericPrefix is not taken, as "_" will be added when encoding.
+		// Making inner elements searchable
+		tableNameString := joinStringInterfaceSlice(tableName, seperator)
+		if meta[0].(int) > 0 && newGenericTableNameString != tableNameString {
+			newRow := make(map[string]interface{})
+			newRow[docTypeField] = newGenericTableName
+			newRow[valueField] = reflect.ValueOf(val).Interface()
+			newRow[keyRefField] = keyref
+			newTable = append(newTable, newRow)
+		}
+
 		newRow := make(map[string]interface{})
 		newRow[docTypeField] = tableName
 		newRow[valueField] = reflect.ValueOf(val).Interface()
@@ -118,67 +184,82 @@ func (iState *iState) encodeState(oMap map[string]interface{}, keyref string) (e
 
 	for i := 0; i < len(relationalTables); i++ {
 		for j := 0; j < len(relationalTables[i]); j++ {
+			encodedKeyParts := relationalTables[i][j][docTypeField].([]interface{})
+			for k := 0; k < len(encodedKeyParts); k++ {
+				encodedKeyParts[k], iStateErr = encode(encodedKeyParts[k])
+				if iStateErr != nil {
+					return
+				}
+			}
 			encodedVal := ""
 			valInterface := relationalTables[i][j][valueField]
-			switch kind := reflect.ValueOf(valInterface).Kind(); kind {
-			case reflect.Bool:
-				switch valInterface.(bool) {
-				case true:
-					encodedVal = boolTrue
-				default:
-					encodedVal = boolFalse
-				}
-			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-				numString := fmt.Sprintf("%v", valInterface)
-				numEncodePrefix := ""
-				switch strings.HasPrefix(numString, "-") {
-				case true:
-					numEncodePrefix += negativeNum
-					numString = numString[1:]
-				default:
-					numEncodePrefix += positiveNum
-				}
-				if _, ok := numDigits[len(numString)]; !ok {
-					iStateErr = NewError(nil, 2009, len(numString))
-					return
-				}
-				numEncodePrefix += numDigits[len(numString)]
-				encodedVal = numEncodePrefix + separator + numString
-			case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-				numString := fmt.Sprintf("%v", valInterface)
-				if _, ok := numDigits[len(numString)]; !ok {
-					iStateErr = NewError(nil, 2009, len(numString))
-					return
-				}
-				numEncodePrefix := positiveNum + numDigits[len(numString)]
-				encodedVal = numEncodePrefix + separator + numString
-			case reflect.Float32, reflect.Float64:
-				numString := fmt.Sprintf("%v", valInterface)
-				numEncodePrefix := ""
-				switch strings.HasPrefix(numString, "-") {
-				case true:
-					numEncodePrefix += negativeNum
-					numString = numString[1:]
-				default:
-					numEncodePrefix += positiveNum
-				}
-				wholeNum := strings.Split(numString, ".")[0]
-				if _, ok := numDigits[len(wholeNum)]; !ok {
-					iStateErr = NewError(nil, 2009, len(wholeNum))
-					return
-				}
-				numEncodePrefix += numDigits[len(wholeNum)]
-				encodedVal = numEncodePrefix + separator + numString
-			case reflect.String:
-				encodedVal = valInterface.(string)
-			default:
-				iStateErr = NewError(nil, 2005, kind)
+			encodedVal, iStateErr = encode(valInterface)
+			if iStateErr != nil {
 				return
 			}
 
-			encodedKey := relationalTables[i][j][docTypeField].(string) + separator + encodedVal + separator + keyref
+			encodedKey := joinStringInterfaceSlice(encodedKeyParts, seperator) + seperator + encodedVal + seperator + keyref
 			encodedKeyValPairs[encodedKey] = []byte(keyref)
 		}
+	}
+	return
+}
+
+func encode(value interface{}) (encodedVal string, iStateErr Error) {
+	switch kind := reflect.ValueOf(value).Kind(); kind {
+	case reflect.Bool:
+		switch value.(bool) {
+		case true:
+			encodedVal = boolTrue
+		default:
+			encodedVal = boolFalse
+		}
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		numString := fmt.Sprintf("%v", value)
+		numEncodePrefix := ""
+		switch strings.HasPrefix(numString, "-") {
+		case true:
+			numEncodePrefix += negativeNum
+			numString = numString[1:]
+		default:
+			numEncodePrefix += positiveNum
+		}
+		if _, ok := numDigits[len(numString)]; !ok {
+			iStateErr = NewError(nil, 2009, len(numString))
+			return
+		}
+		numEncodePrefix += numDigits[len(numString)]
+		encodedVal = numEncodePrefix + seperator + numString
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		numString := fmt.Sprintf("%v", value)
+		if _, ok := numDigits[len(numString)]; !ok {
+			iStateErr = NewError(nil, 2009, len(numString))
+			return
+		}
+		numEncodePrefix := positiveNum + numDigits[len(numString)]
+		encodedVal = numEncodePrefix + seperator + numString
+	case reflect.Float32, reflect.Float64:
+		numString := fmt.Sprintf("%v", value)
+		numEncodePrefix := ""
+		switch strings.HasPrefix(numString, "-") {
+		case true:
+			numEncodePrefix += negativeNum
+			numString = numString[1:]
+		default:
+			numEncodePrefix += positiveNum
+		}
+		wholeNum := strings.Split(numString, ".")[0]
+		if _, ok := numDigits[len(wholeNum)]; !ok {
+			iStateErr = NewError(nil, 2009, len(wholeNum))
+			return
+		}
+		numEncodePrefix += numDigits[len(wholeNum)]
+		encodedVal = numEncodePrefix + seperator + numString
+	case reflect.String:
+		encodedVal = value.(string)
+	default:
+		iStateErr = NewError(nil, 2005, kind)
+		return
 	}
 	return
 }
@@ -227,8 +308,8 @@ func (iState *iState) findDifference(sourceObjMap map[string]interface{}, target
 			// 		continue
 			// 	}
 			// }
-			_, ok := iState.fieldJSONIndexMap[fieldName]
-			fmt.Printf("THIS IS IN A REAL MAP?: %v, %v\n", !ok, fieldName)
+			// _, ok := iState.fieldJSONIndexMap[fieldName]
+
 			switch {
 			//case isRealMap(sourceObjMap[fieldName].(map[string]interface{}), targetObjMap[fieldName].(map[string]interface{})):
 			// Its a real map, if the field name does not exist in structref
@@ -261,7 +342,7 @@ func (iState *iState) findDifference(sourceObjMap map[string]interface{}, target
 				}
 				// default:
 				// 	var tempAppendOrModifyMap, tempDeleteMap map[string]interface{}
-				// 	fmt.Println("This map is sent to recurse again:", sourceObjMap[fieldName], targetObjMap[fieldName])
+				//
 				// 	tempAppendOrModifyMap, tempDeleteMap, iStateErr = iState.findDifference(sourceObjMap[fieldName].(map[string]interface{}), targetObjMap[fieldName].(map[string]interface{}))
 				// 	if iStateErr != nil {
 				// 		return
@@ -275,7 +356,7 @@ func (iState *iState) findDifference(sourceObjMap map[string]interface{}, target
 			}
 
 		default:
-			fmt.Printf("Default: %v, %v, Kinds: %v, %v\n", sourceObjMap[fieldName], targetObjMap[fieldName], reflect.ValueOf(sourceObjMap[fieldName]).Kind(), reflect.ValueOf(targetObjMap[fieldName]).Kind())
+
 			switch k := reflect.ValueOf(sourceObjMap[fieldName]).Kind(); k {
 			case reflect.Bool:
 				fallthrough
@@ -360,8 +441,7 @@ func findSliceDifference(sourceS interface{}, targetS interface{}) (appendS inte
 }
 
 func findMapDifference(sourceM interface{}, targetM interface{}) (appendM interface{}, deleteM interface{}, iStateErr Error) {
-	fmt.Println("findMapDifference SOURCEM: ", sourceM)
-	fmt.Println("findMapDifference TARGETM: ", targetM)
+
 	// if reflect.TypeOf(sourceM) != reflect.TypeOf(targetM) {
 	// 	iStateErr = NewError(nil, 2013, reflect.TypeOf(sourceM), reflect.TypeOf(targetM))
 	// 	return
@@ -373,7 +453,7 @@ func findMapDifference(sourceM interface{}, targetM interface{}) (appendM interf
 	// }
 
 	if reflect.DeepEqual(sourceM, targetM) {
-		fmt.Printf("findMapDifference: Deepequal: %v, %v\n", sourceM, targetM)
+
 		return
 	}
 
@@ -408,8 +488,7 @@ func findMapDifference(sourceM interface{}, targetM interface{}) (appendM interf
 
 	appendM = targetM
 	deleteM = sourceM
-	fmt.Println("APPENDM: ", appendM)
-	fmt.Println("DELETEM: ", deleteM)
+
 	return
 }
 
@@ -521,7 +600,7 @@ func generateFieldJSONIndexMap(structRef interface{}, fieldJSONIndexMap map[stri
 }
 
 //
-func getPrimaryFieldIndex(object interface{}) (outi int, iStateError Error) {
+func getPrimaryFieldIndex(object interface{}) (outi int, iStateErr Error) {
 	iStateLogger.Debugf("Inside getPrimaryFieldIndex")
 	defer iStateLogger.Debugf("Exiting getPrimaryFieldIndex")
 	outi = -1
@@ -534,8 +613,144 @@ func getPrimaryFieldIndex(object interface{}) (outi int, iStateError Error) {
 		}
 	}
 	if outi == -1 {
-		iStateError = NewError(nil, 2002, reflect.TypeOf(object))
+		iStateErr = NewError(nil, 2002, reflect.TypeOf(object))
 		return
+	}
+	return
+}
+
+//
+func generatejsonFieldKindMap(structRef interface{}, jsonFieldKindMap map[string]reflect.Kind, mapKeyKindMap map[string]reflect.Kind, prev ...string) (iStateErr Error) {
+	prefix := ""
+	if len(prev) > 0 {
+		prefix = prev[0] + dot
+	}
+	refVal := reflect.ValueOf(structRef)
+	switch kind := refVal.Kind(); kind {
+	case reflect.Slice, reflect.Array:
+		sliceLen := refVal.Len()
+		jsonTag := prefix + star
+		for i := 0; i < sliceLen; i++ {
+			innerVal := refVal.Index(i).Interface()
+			jsonFieldKindMap[jsonTag] = refVal.Index(i).Kind()
+			iStateErr = generatejsonFieldKindMap(innerVal, jsonFieldKindMap, mapKeyKindMap, jsonTag)
+			if iStateErr != nil {
+				return
+			}
+		}
+	case reflect.Map:
+		mapKeys := refVal.MapKeys()
+		jsonTag := prefix + star
+		for i := 0; i < len(mapKeys); i++ {
+			innerVal := refVal.MapIndex(mapKeys[i]).Interface()
+			jsonFieldKindMap[jsonTag] = refVal.MapIndex(mapKeys[i]).Kind()
+			mapKeyKindMap[jsonTag] = mapKeys[i].Kind()
+			iStateErr = generatejsonFieldKindMap(innerVal, jsonFieldKindMap, mapKeyKindMap, jsonTag)
+			if iStateErr != nil {
+				return
+			}
+		}
+	case reflect.Struct:
+		for i := 0; i < refVal.NumField(); i++ {
+			field := reflect.TypeOf(structRef).Field(i)
+			jsonTag := prefix + field.Tag.Get("json")
+			if field.Tag.Get("json") == "" {
+				iStateErr = NewError(nil, 2001, field.Name, reflect.TypeOf(structRef))
+				return
+			}
+			jsonFieldKindMap[jsonTag] = refVal.Field(i).Kind()
+			iStateErr = generatejsonFieldKindMap(refVal.Field(i).Interface(), jsonFieldKindMap, mapKeyKindMap, jsonTag)
+			if iStateErr != nil {
+				return
+			}
+
+		}
+	default:
+
+	}
+	return
+}
+
+//
+func generateDepthKindMap(structRef interface{}, depthKindMap map[string]reflect.Kind, meta ...interface{}) (iStateErr Error) {
+	// meta[0] = previousKey
+	// meta[1] = depth
+	prefix := ""
+	switch len(meta) > 0 {
+	case true:
+		prefix = meta[0].(string) + seperator
+	default:
+		meta = []interface{}{"", 0}
+	}
+	refVal := reflect.ValueOf(structRef)
+	switch kind := refVal.Kind(); kind {
+	case reflect.Slice, reflect.Array:
+		sliceLen := refVal.Len()
+		fieldName := prefix
+		for i := 0; i < sliceLen; i++ {
+			innerVal := refVal.Index(i).Interface()
+			// At this depth, the value will be slice's index like 0,1,2, its type Int
+			depthKindMap[fieldName] = reflect.Int
+			iStateErr = generateDepthKindMap(innerVal, depthKindMap, fieldName, meta[1].(int)+1)
+			if iStateErr != nil {
+				return
+			}
+		}
+	case reflect.Map:
+		mapKeys := refVal.MapKeys()
+		fieldName := prefix
+		for i := 0; i < len(mapKeys); i++ {
+			innerVal := refVal.MapIndex(mapKeys[i]).Interface()
+			//depthKindMap[fieldName] = refVal.MapIndex(mapKeys[i]).Kind()
+			depthKindMap[fieldName] = mapKeys[i].Kind()
+			iStateErr = generateDepthKindMap(innerVal, depthKindMap, fieldName, meta[1].(int)+1)
+			if iStateErr != nil {
+				return
+			}
+		}
+	case reflect.Struct:
+		for i := 0; i < refVal.NumField(); i++ {
+			field := reflect.TypeOf(structRef).Field(i)
+			jsonTag := prefix + field.Tag.Get("json")
+			if field.Tag.Get("json") == "" {
+				iStateErr = NewError(nil, 2001, field.Name, reflect.TypeOf(structRef))
+				return
+			}
+			depthKindMap[jsonTag] = refVal.Field(i).Kind()
+			iStateErr = generateDepthKindMap(refVal.Field(i).Interface(), depthKindMap, jsonTag, meta[1].(int)+1)
+			if iStateErr != nil {
+				return
+			}
+
+		}
+	default:
+		fieldName := meta[0].(string) // Not using prefix here, to remove "_" at end
+		depthKindMap[fieldName] = refVal.Kind()
+	}
+	return
+}
+
+func removeLastSeparators(input string) (val string) {
+	val = input
+	endIndex := -1
+	for i := len(input) - 1; i >= 0; i-- {
+		if input[i] != seperator[0] { // separator[0] is '_' (not "_")
+			break
+		}
+		endIndex = i
+	}
+	if endIndex != -1 {
+		val = input[:endIndex]
+	}
+	return
+}
+
+func joinStringInterfaceSlice(slice []interface{}, seperatorString string) (joinedString string) {
+	if len(slice) > 0 {
+		joinedString = fmt.Sprintf("%v", slice[0])
+	}
+	for i := 1; i < len(slice); i++ {
+		joinedString += seperatorString + fmt.Sprintf("%v", slice[i])
 	}
 	return
 }
