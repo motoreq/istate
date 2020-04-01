@@ -10,9 +10,15 @@
 	Note: To enable high performance queries, it has an indexing mechanism
 	that may take extra storage space.
 
+	Restrictions:
+		- Cannot use
+
 	Known Limitations and Issues:
-	Indexing: A map with integer / number as key type will still be
-	considered as string when indexing.
+
+
+	Fixed:
+		- Indexing: A map with integer / number as key type will still be
+    considered as string when indexing.
 
 */
 

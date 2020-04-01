@@ -11,7 +11,7 @@ import (
 )
 
 // "." is restricted eg: .docType
-func (iState *iState) generateRelationalTables(obj map[string]interface{}, keyref string) (relationalTables [][]map[string]interface{}, iStateErr Error) {
+func (iState *iState) generateRelationalTables(obj map[string]interface{}, keyref string, isQuery bool) (relationalTables [][]map[string]interface{}, iStateErr Error) {
 	iStateLogger.Debugf("Inside generateRelationalTables")
 	defer iStateLogger.Debugf("Exiting generateRelationalTables")
 
@@ -27,7 +27,7 @@ func (iState *iState) generateRelationalTables(obj map[string]interface{}, keyre
 			iStateErr = NewError(nil, 2001, field.Name, reflect.TypeOf(iState.structRef))
 			return
 		}
-		newTable, iStateErr = iState.traverseAndGenerateRelationalTable(val, []interface{}{tableName}, jsonTag, tableName, keyref)
+		newTable, iStateErr = iState.traverseAndGenerateRelationalTable(val, []interface{}{tableName}, jsonTag, tableName, keyref, isQuery)
 		if iStateErr != nil {
 			return
 		}
@@ -39,7 +39,7 @@ func (iState *iState) generateRelationalTables(obj map[string]interface{}, keyre
 }
 
 //
-func (iState *iState) traverseAndGenerateRelationalTable(val interface{}, tableName []interface{}, jsonTag string, iStateTag string, keyref string, meta ...interface{}) (newTable []map[string]interface{}, iStateErr Error) {
+func (iState *iState) traverseAndGenerateRelationalTable(val interface{}, tableName []interface{}, jsonTag string, iStateTag string, keyref string, isQuery bool, meta ...interface{}) (newTable []map[string]interface{}, iStateErr Error) {
 	iStateLogger.Debugf("Inside traverseAndGenerateRelationalTable")
 	defer iStateLogger.Debugf("Exiting traverseAndGenerateRelationalTable")
 	// meta[0] Universal depth
@@ -58,7 +58,7 @@ func (iState *iState) traverseAndGenerateRelationalTable(val interface{}, tableN
 		for i := 0; i < sliceLen; i++ {
 			innerVal := reflect.ValueOf(val).Index(i).Interface()
 			var innerTables []map[string]interface{}
-			innerTables, iStateErr = iState.traverseAndGenerateRelationalTable(innerVal, newTableName, jsonTag, iStateTag, keyref, meta[0].(int)+1, append(genericTableName, ""))
+			innerTables, iStateErr = iState.traverseAndGenerateRelationalTable(innerVal, newTableName, jsonTag, iStateTag, keyref, isQuery, meta[0].(int)+1, append(genericTableName, ""))
 			if iStateErr != nil {
 				return
 			}
@@ -67,7 +67,7 @@ func (iState *iState) traverseAndGenerateRelationalTable(val interface{}, tableN
 			}
 		}
 		// For empty slice as leaf value
-		if sliceLen == 0 {
+		if sliceLen == 0 && !isQuery {
 			tableNameString := joinStringInterfaceSlice(tableName, seperator)
 			tableNameString = removeLastSeparators(tableNameString)
 			if tableNameString == iStateTag {
@@ -77,6 +77,9 @@ func (iState *iState) traverseAndGenerateRelationalTable(val interface{}, tableN
 			newRow[docTypeField] = tableName
 			newRow[valueField] = ""
 			newRow[keyRefField] = keyref
+			currentDepth := joinStringInterfaceSliceWithDotStar(append([]interface{}{jsonTag}, tableName[1:]...))
+			newRow[fieldNameField] = currentDepth
+			fmt.Printf("ADVANCED COUNTER: CURRENT DEPTH KEY: %v, For Row: %v\n", currentDepth, newRow)
 			newTable = append(newTable, newRow)
 		}
 	case reflect.Map:
@@ -95,12 +98,15 @@ func (iState *iState) traverseAndGenerateRelationalTable(val interface{}, tableN
 					return
 				}
 				nextInitialTableName = append(genericTableName, "")
-				if meta[0].(int) > 1 {
+				if meta[0].(int) > 1 && !isQuery {
 					newRow := make(map[string]interface{})
 					newGenericTableName := []interface{}{iStateTag}
 					newRow[docTypeField] = append(newGenericTableName, genericTableName...)
-					newRow[valueField] = mapKeys[i].String()
+					newRow[valueField] = convertedMapKey
 					newRow[keyRefField] = keyref
+					currentDepth := joinStringInterfaceSliceWithDotStar(append([]interface{}{jsonTag}, genericTableName...))
+					newRow[fieldNameField] = currentDepth
+					fmt.Printf("ADVANCED COUNTER: CURRENT DEPTH KEY: %v, For Row: %v\n", currentDepth, newRow)
 					newTable = append(newTable, newRow)
 				}
 			default:
@@ -109,7 +115,7 @@ func (iState *iState) traverseAndGenerateRelationalTable(val interface{}, tableN
 
 			innerVal := reflect.ValueOf(val).MapIndex(mapKeys[i]).Interface()
 			var innerTables []map[string]interface{}
-			innerTables, iStateErr = iState.traverseAndGenerateRelationalTable(innerVal, append(tableName, convertedMapKey), jsonTag, iStateTag, keyref, meta[0].(int)+1, nextInitialTableName)
+			innerTables, iStateErr = iState.traverseAndGenerateRelationalTable(innerVal, append(tableName, convertedMapKey), jsonTag, iStateTag, keyref, isQuery, meta[0].(int)+1, nextInitialTableName)
 			if iStateErr != nil {
 				return
 			}
@@ -119,7 +125,7 @@ func (iState *iState) traverseAndGenerateRelationalTable(val interface{}, tableN
 
 		}
 		// For empty structs as leaf value
-		if len(mapKeys) == 0 {
+		if len(mapKeys) == 0 && !isQuery {
 			tableNameString := joinStringInterfaceSlice(tableName, seperator)
 			tableNameString = removeLastSeparators(tableNameString)
 			if tableNameString == iStateTag {
@@ -129,6 +135,9 @@ func (iState *iState) traverseAndGenerateRelationalTable(val interface{}, tableN
 			newRow[docTypeField] = tableName
 			newRow[valueField] = ""
 			newRow[keyRefField] = keyref
+			currentDepth := joinStringInterfaceSliceWithDotStar(append([]interface{}{jsonTag}, tableName[1:]...))
+			newRow[fieldNameField] = currentDepth
+			fmt.Printf("ADVANCED COUNTER: CURRENT DEPTH KEY: %v, For Row: %v\n", currentDepth, newRow)
 			newTable = append(newTable, newRow)
 		}
 	default:
@@ -142,11 +151,14 @@ func (iState *iState) traverseAndGenerateRelationalTable(val interface{}, tableN
 		newGenericTableNameString := joinStringInterfaceSlice(newGenericTableName, seperator) // Here genericPrefix is not taken, as "_" will be added when encoding.
 		// Making inner elements searchable
 		tableNameString := joinStringInterfaceSlice(tableName, seperator)
-		if meta[0].(int) > 0 && newGenericTableNameString != tableNameString {
+		if meta[0].(int) > 0 && newGenericTableNameString != tableNameString && !isQuery {
 			newRow := make(map[string]interface{})
 			newRow[docTypeField] = newGenericTableName
 			newRow[valueField] = reflect.ValueOf(val).Interface()
 			newRow[keyRefField] = keyref
+			currentDepth := joinStringInterfaceSliceWithDotStar(append([]interface{}{jsonTag}, genericTableName...))
+			newRow[fieldNameField] = currentDepth
+			fmt.Printf("ADVANCED COUNTER: CURRENT DEPTH KEY: %v, For Row: %v\n", currentDepth, newRow)
 			newTable = append(newTable, newRow)
 		}
 
@@ -154,6 +166,9 @@ func (iState *iState) traverseAndGenerateRelationalTable(val interface{}, tableN
 		newRow[docTypeField] = tableName
 		newRow[valueField] = reflect.ValueOf(val).Interface()
 		newRow[keyRefField] = keyref
+		currentDepth := joinStringInterfaceSliceWithDotStar(append([]interface{}{jsonTag}, tableName[1:]...))
+		newRow[fieldNameField] = currentDepth
+		fmt.Printf("ADVANCED COUNTER: CURRENT DEPTH KEY: %v, For Row: %v\n", currentDepth, newRow)
 		newTable = append(newTable, newRow)
 	}
 	return
@@ -170,14 +185,17 @@ func (iState *iState) getPrimaryKey(object interface{}) (key string) {
 }
 
 //
-func (iState *iState) encodeState(oMap map[string]interface{}, keyref string) (encodedKeyValPairs map[string][]byte, iStateErr Error) {
+func (iState *iState) encodeState(oMap map[string]interface{}, keyref string, isQuery ...bool) (encodedKeyValPairs map[string][]byte, iStateErr Error) {
 	iStateLogger.Debugf("Inside encodeState")
 	defer iStateLogger.Debugf("Exiting encodeState")
+	if len(isQuery) == 0 {
+		isQuery = []bool{false}
+	}
 
 	encodedKeyValPairs = make(map[string][]byte)
 
 	// RQ-Index key - value
-	relationalTables, iStateErr := iState.generateRelationalTables(oMap, keyref)
+	relationalTables, iStateErr := iState.generateRelationalTables(oMap, keyref, isQuery[0])
 	if iStateErr != nil {
 		return
 	}
@@ -644,7 +662,7 @@ func generatejsonFieldKindMap(structRef interface{}, jsonFieldKindMap map[string
 		for i := 0; i < len(mapKeys); i++ {
 			innerVal := refVal.MapIndex(mapKeys[i]).Interface()
 			jsonFieldKindMap[jsonTag] = refVal.MapIndex(mapKeys[i]).Kind()
-			mapKeyKindMap[jsonTag] = mapKeys[i].Kind()
+			mapKeyKindMap[prev[0]] = mapKeys[i].Kind()
 			iStateErr = generatejsonFieldKindMap(innerVal, jsonFieldKindMap, mapKeyKindMap, jsonTag)
 			if iStateErr != nil {
 				return
@@ -730,6 +748,65 @@ func generateDepthKindMap(structRef interface{}, depthKindMap map[string]reflect
 	return
 }
 
+// //
+// func generatejsonFieldKindMap(structRef interface{}, jsonFieldKindMap map[string]reflect.Kind, meta ...interface{}) (iStateErr Error) {
+// 	// meta[0] = previousKey
+// 	// meta[1] = depth
+// 	prefix := ""
+// 	switch len(meta) > 0 {
+// 	case true:
+// 		prefix = meta[0].(string) + dot
+// 	default:
+// 		meta = []interface{}{"", 0}
+// 	}
+// 	refVal := reflect.ValueOf(structRef)
+// 	switch kind := refVal.Kind(); kind {
+// 	case reflect.Slice, reflect.Array:
+// 		sliceLen := refVal.Len()
+// 		fieldName := prefix + star
+// 		for i := 0; i < sliceLen; i++ {
+// 			innerVal := refVal.Index(i).Interface()
+// 			// At this depth, the value will be slice's index like 0,1,2, its type Int
+// 			jsonFieldKindMap[fieldName] = reflect.Int
+// 			iStateErr = generatejsonFieldKindMap(innerVal, jsonFieldKindMap, fieldName, meta[1].(int)+1)
+// 			if iStateErr != nil {
+// 				return
+// 			}
+// 		}
+// 	case reflect.Map:
+// 		mapKeys := refVal.MapKeys()
+// 		fieldName := prefix + star
+// 		for i := 0; i < len(mapKeys); i++ {
+// 			innerVal := refVal.MapIndex(mapKeys[i]).Interface()
+// 			//jsonFieldKindMap[fieldName] = refVal.MapIndex(mapKeys[i]).Kind()
+// 			jsonFieldKindMap[fieldName] = mapKeys[i].Kind()
+// 			iStateErr = generatejsonFieldKindMap(innerVal, jsonFieldKindMap, fieldName, meta[1].(int)+1)
+// 			if iStateErr != nil {
+// 				return
+// 			}
+// 		}
+// 	case reflect.Struct:
+// 		for i := 0; i < refVal.NumField(); i++ {
+// 			field := reflect.TypeOf(structRef).Field(i)
+// 			jsonTag := prefix + field.Tag.Get("json")
+// 			if field.Tag.Get("json") == "" {
+// 				iStateErr = NewError(nil, 2001, field.Name, reflect.TypeOf(structRef))
+// 				return
+// 			}
+// 			jsonFieldKindMap[jsonTag] = refVal.Field(i).Kind()
+// 			iStateErr = generatejsonFieldKindMap(refVal.Field(i).Interface(), jsonFieldKindMap, jsonTag, meta[1].(int)+1)
+// 			if iStateErr != nil {
+// 				return
+// 			}
+
+// 		}
+// 	default:
+// 		fieldName := meta[0].(string) // Not using prefix here, to remove "." at end
+// 		jsonFieldKindMap[fieldName] = refVal.Kind()
+// 	}
+// 	return
+// }
+
 func removeLastSeparators(input string) (val string) {
 	val = input
 	endIndex := -1
@@ -751,6 +828,22 @@ func joinStringInterfaceSlice(slice []interface{}, seperatorString string) (join
 	}
 	for i := 1; i < len(slice); i++ {
 		joinedString += seperatorString + fmt.Sprintf("%v", slice[i])
+	}
+	return
+}
+
+func joinStringInterfaceSliceWithDotStar(slice []interface{}) (joinedString string) {
+	if len(slice) > 0 {
+		joinedString = fmt.Sprintf("%v", slice[0])
+	}
+	for i := 1; i < len(slice); i++ {
+		stringified := fmt.Sprintf("%v", slice[i])
+		switch stringified == "" {
+		case true:
+			joinedString += dot + star
+		default:
+			joinedString += dot + fmt.Sprintf("%v", slice[i])
+		}
 	}
 	return
 }

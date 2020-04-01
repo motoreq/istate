@@ -10,6 +10,9 @@
 	Note: To enable high performance queries, it has an indexing mechanism
 	that may take extra storage space.
 
+	Restrictions:
+		- Cannot use
+
 	Known Limitations and Issues:
 
 

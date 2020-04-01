@@ -7,9 +7,10 @@ const (
 	iStatePrimaryTag     = "primary"
 	iStatePrimaryTrueVal = "true"
 
-	docTypeField = ".docType"
-	keyRefField  = ".keyref"
-	valueField   = ".value"
+	docTypeField   = ".docType"
+	keyRefField    = ".keyref"
+	valueField     = ".value"
+	fieldNameField = ".fieldName"
 
 	// Encode
 	boolTrue    = "t"

@@ -60,9 +60,10 @@ var errorCodes = map[int]string{
 	3012: "convertToRightType: ParseInt Error",
 	3013: "convertToRightType: ParseUint Error",
 	3014: "convertToRightType: ParseFloat Error",
-	3015: "convertToRightType: Indexdot overflow",
-	3016: "convertToRightType: Field not found in jsonFieldKindMap: %v",
+	3015: "convertToRightType: Indexdot overflow: Syntax Error for fieldName: %v. If the field type is slice or map, try appending .* 's",
+	3016: "convertToRightType: Field not found in jsonFieldKindMap: %v. Check and input proper structure in field name.",
 	3017: "convertToPrimitiveType: Invalid primitive type received: %v",
+	3018: "convertToRightType: Field not found in mapKeyKindMap: %v",
 }
 
 // Error is the interface of this package.

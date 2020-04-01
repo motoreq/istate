@@ -95,7 +95,8 @@ func dotsToActualDepth(splitFieldName []string, val interface{}, curIndex ...int
 }
 
 func (iState *iState) parseAndEvalSingle(stub shim.ChaincodeStubInterface, uQuery map[string]interface{}) (result map[string][]byte, iStateErr Error) {
-	eqQuery := make(map[string]interface{})
+	// I dont have to make [], it will be made at addKeyWithoutOverLap
+	var eqQuery []map[string]interface{}
 	neqQuery := make(map[string]interface{})
 	gtQuery := make(map[string]interface{})
 	ltQuery := make(map[string]interface{})
@@ -149,7 +150,8 @@ func (iState *iState) parseAndEvalSingle(stub shim.ChaincodeStubInterface, uQuer
 
 		switch keyword {
 		case eq:
-			eqQuery[newIndex] = newVal
+			// eqQuery[newIndex] = newVal
+			eqQuery = addKeyWithoutOverLap(eqQuery, newIndex, newVal)
 		case neq:
 			neqQuery[newIndex] = newVal
 		case gt:
@@ -208,17 +210,25 @@ func (iState *iState) parseAndEvalSingle(stub shim.ChaincodeStubInterface, uQuer
 	return
 }
 
-func (iState *iState) evaluateEq(stub shim.ChaincodeStubInterface, query map[string]interface{}) (result map[string][]byte, iStateErr Error) {
+func (iState *iState) evaluateEq(stub shim.ChaincodeStubInterface, query []map[string]interface{}) (result map[string][]byte, iStateErr Error) {
 	fmt.Println("EQ QUERY:", query)
 	keyref := ""
-	var encodedKeyValue map[string][]byte
-	encodedKeyValue, iStateErr = iState.encodeState(query, keyref)
-	if iStateErr != nil {
-		return
+	encodedKeyValue := make(map[string][]byte)
+	for i := 0; i < len(query); i++ {
+		var tempEncodedKeyValue map[string][]byte
+		tempEncodedKeyValue, iStateErr = iState.encodeState(query[i], keyref, true)
+		if iStateErr != nil {
+			return
+		}
+		for index, val := range tempEncodedKeyValue {
+			encodedKeyValue[index] = val
+		}
 	}
 
+	fmt.Println("ENCODED BEFORE * REMOVE:", encodedKeyValue)
+
 	// Remove * results from encodedKeys
-	removeKeysWithStar(encodedKeyValue)
+	removeStarFromKeys(encodedKeyValue)
 
 	keyResults := make([]map[string][]byte, len(encodedKeyValue), len(encodedKeyValue))
 	fmt.Println("ENCODED:", encodedKeyValue)
@@ -389,35 +399,56 @@ func convertToRightType(fieldName string, toConvert string, jsonFieldKindMap map
 		iStateErr = NewError(nil, 3010)
 		return
 	}
+	// curField := fieldName
 	curField := splitFieldName[0]
 	nextIndex := 1
 	for {
 		kind, ok := jsonFieldKindMap[curField]
-	SpecialFlow:
 		if !ok {
 			iStateErr = NewError(nil, 3016, curField)
 			return
 		}
+	SpecialFlow:
 		switch kind {
 		case reflect.Array, reflect.Slice:
-			curField = curField + splitDot + star
-			continue
-		case reflect.Map:
-			curField = curField + splitDot + star
-			// Is field only to be searched, or value too
-			if len(splitFieldName)-1 == nextIndex {
-				// Notice kind and ok are changed
-				kind, ok = mapKeyKindMap[curField]
-				goto SpecialFlow
+			if len(splitFieldName) <= nextIndex {
+				iStateErr = NewError(nil, 3015, fieldName)
+				return
 			}
+			curField = curField + splitDot + star
+			nextIndex++
 			continue
 		case reflect.Struct:
 			if len(splitFieldName) <= nextIndex {
-				iStateErr = NewError(nil, 3015)
+				iStateErr = NewError(nil, 3015, fieldName)
 				return
 			}
 			curField = curField + splitDot + splitFieldName[nextIndex]
 			nextIndex++
+			continue
+		case reflect.Map:
+			// Is field only to be searched, or value too
+			// If this is the last index
+			switch len(splitFieldName) == nextIndex {
+			case true:
+				// Notice kind and ok are changed
+				kind, ok = mapKeyKindMap[curField]
+				if !ok {
+					iStateErr = NewError(nil, 3016, curField)
+					return
+				}
+				goto SpecialFlow
+			default:
+				if len(splitFieldName) <= nextIndex {
+					iStateErr = NewError(nil, 3015, fieldName)
+					return
+				}
+				//prevField := curField
+				curField = curField + splitDot + star
+				// kind, ok = jsonFieldKindMap[curField]
+				//curField = prevField + splitDot + splitFieldName[nextIndex]
+				nextIndex++
+			}
 			continue
 		default: // Primitive type
 			convertedVal, iStateErr = convertToPrimitiveType(toConvert, kind)
@@ -428,14 +459,6 @@ func convertToRightType(fieldName string, toConvert string, jsonFieldKindMap map
 		break
 	}
 	return
-}
-
-func removeKeysWithStar(keyValue map[string][]byte) {
-	for index := range keyValue {
-		if strings.Contains(index, star) {
-			delete(keyValue, index)
-		}
-	}
 }
 
 func convertToPrimitiveType(toConvert string, kind reflect.Kind) (convertedVal interface{}, iStateErr Error) {
@@ -538,6 +561,44 @@ func convertToPrimitiveType(toConvert string, kind reflect.Kind) (convertedVal i
 	default:
 		iStateErr = NewError(nil, 3017, kind)
 		return
+	}
+	return
+}
+
+func removeKeysWithStar(keyValue map[string][]byte) {
+	for index := range keyValue {
+		if strings.Contains(index, star) {
+			delete(keyValue, index)
+		}
+	}
+}
+
+func removeStarFromKeys(keyValue map[string][]byte) {
+	for index := range keyValue {
+		// Replace is used as ReplaceAll isnt available in go version used in fabric image
+		newIndex := strings.Replace(index, star, "", len(index))
+		if newIndex != index {
+			keyValue[newIndex] = keyValue[index]
+			delete(keyValue, index)
+		}
+
+	}
+}
+
+func addKeyWithoutOverLap(query []map[string]interface{}, index string, value interface{}) (newQuery []map[string]interface{}) {
+	newQuery = query
+	successFlag := false
+	for i := 0; i < len(newQuery); i++ {
+		if _, ok := newQuery[i][index]; !ok {
+			newQuery[i][index] = value
+			successFlag = true
+			break
+		}
+	}
+	if !successFlag {
+		tempMap := make(map[string]interface{})
+		tempMap[index] = value
+		newQuery = append(newQuery, tempMap)
 	}
 	return
 }
