@@ -42,15 +42,15 @@ services:
     # - peer0.users.common.com
     networks:
     - fabricnetwork
-  couch0:
-    container_name: couch0
-    extends:
-      file: base.yaml
-      service: couchdb
-    ports:
-    - 5984:5984
-    networks:
-    - fabricnetwork
+  # couch0:
+  #   container_name: couch0
+  #   extends:
+  #     file: base.yaml
+  #     service: couchdb
+  #   ports:
+  #   - 5984:5984
+  #   networks:
+  #   - fabricnetwork
   # couch1:
   #   container_name: couch1
   #   extends:
@@ -85,8 +85,8 @@ services:
     - CORE_PEER_CHAINCODELISTENADDRESS=peer0.users.medisot.com:7052
     - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.users.medisot.com:7051
     - CORE_PEER_LOCALMSPID=medisotUsersMSP
-    - CORE_LEDGER_STATE_STATEDATABASE=CouchDB
-    - CORE_LEDGER_STATE_COUCHDBCONFIG_COUCHDBADDRESS=couch0:5984
+    # - CORE_LEDGER_STATE_STATEDATABASE=CouchDB
+    # - CORE_LEDGER_STATE_COUCHDBCONFIG_COUCHDBADDRESS=couch0:5984
     - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.users.medisot.com:7051
     volumes:
     - /var/run/:/host/var/run/

@@ -64,6 +64,7 @@ var errorCodes = map[int]string{
 	3016: "convertToRightType: Field not found in jsonFieldKindMap: %v. Check and input proper structure in field name.",
 	3017: "convertToPrimitiveType: Invalid primitive type received: %v",
 	3018: "convertToRightType: Field not found in mapKeyKindMap: %v",
+	3019: "parseAndEvalSingle: Unmarshal error",
 }
 
 // Error is the interface of this package.

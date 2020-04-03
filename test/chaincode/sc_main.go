@@ -37,6 +37,7 @@ func (sc *TestSmartContract) handleFunctions(stub shim.ChaincodeStubInterface) p
 	function, _ := stub.GetFunctionAndParameters()
 	fmt.Println("Function:")
 	fmt.Println(function)
+
 	switch function {
 	case "CreateState":
 		return sc.CreateState(stub)

@@ -8,6 +8,7 @@ import (
 
 //
 type IStateInterface interface {
+	CopyiState() (iStateInterface IStateInterface)
 	CreateState(shim.ChaincodeStubInterface, interface{}) Error
 	ReadState(shim.ChaincodeStubInterface, interface{}) ([]byte, Error)
 	UpdateState(shim.ChaincodeStubInterface, interface{}) Error

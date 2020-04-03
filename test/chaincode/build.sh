@@ -6,6 +6,7 @@ cp ../../*.go vendor/github.com/prasanths96/iState
 rm $GOPATH/src/github.com/prasanths96/iState -rf
 mkdir -p $GOPATH/src/github.com/prasanths96/iState
 cp vendor/github.com/prasanths96/iState/* $GOPATH/src/github.com/prasanths96/iState/. -rf
+cp $GOPATH/src/github.com/emirpasic/ vendor/github.com/. -rf
 # rm $GOPATH/src/github.com/prasanths96/hyperledger/easycompositestate -rf
 # mkdir -p $GOPATH/src/github.com/prasanths96/hyperledger/easycompositestate
 # cp vendor/github.com/prasanths96/hyperledger/easycompositestate/* $GOPATH/src/github.com/prasanths96/hyperledger/easycompositestate/. -rf

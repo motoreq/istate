@@ -4,9 +4,7 @@ package istate
 
 import (
 	"fmt"
-	// "github.com/hyperledger/fabric/core/chaincode/shim"
 	"reflect"
-	// "strconv"
 	"strings"
 )
 
@@ -79,13 +77,13 @@ func (iState *iState) traverseAndGenerateRelationalTable(val interface{}, tableN
 			newRow[keyRefField] = keyref
 			currentDepth := joinStringInterfaceSliceWithDotStar(append([]interface{}{jsonTag}, tableName[1:]...))
 			newRow[fieldNameField] = currentDepth
-			fmt.Printf("ADVANCED COUNTER: CURRENT DEPTH KEY: %v, For Row: %v\n", currentDepth, newRow)
+			// fmt.Printf("1 ADVANCED COUNTER: CURRENT DEPTH KEY: %v, For Row: %v\n", currentDepth, newRow)
 			newTable = append(newTable, newRow)
 		}
 	case reflect.Map:
 		mapKeys := reflect.ValueOf(val).MapKeys()
 		currentDepth := joinStringInterfaceSlice(append([]interface{}{jsonTag}, genericTableName...), seperator) + seperator
-		fmt.Println("SEARCHED CURRENT DEPTH: ", currentDepth)
+		// fmt.Println("SEARCHED CURRENT DEPTH: ", currentDepth)
 
 		for i := 0; i < len(mapKeys); i++ {
 			var nextInitialTableName []interface{}
@@ -98,7 +96,8 @@ func (iState *iState) traverseAndGenerateRelationalTable(val interface{}, tableN
 					return
 				}
 				nextInitialTableName = append(genericTableName, "")
-				if meta[0].(int) > 1 && !isQuery {
+				switch {
+				case meta[0].(int) > 1 && !isQuery:
 					newRow := make(map[string]interface{})
 					newGenericTableName := []interface{}{iStateTag}
 					newRow[docTypeField] = append(newGenericTableName, genericTableName...)
@@ -106,7 +105,13 @@ func (iState *iState) traverseAndGenerateRelationalTable(val interface{}, tableN
 					newRow[keyRefField] = keyref
 					currentDepth := joinStringInterfaceSliceWithDotStar(append([]interface{}{jsonTag}, genericTableName...))
 					newRow[fieldNameField] = currentDepth
-					fmt.Printf("ADVANCED COUNTER: CURRENT DEPTH KEY: %v, For Row: %v\n", currentDepth, newRow)
+					// fmt.Printf("2.1 ADVANCED COUNTER: CURRENT DEPTH KEY: %v, For Row: %v\n", currentDepth, newRow)
+					newTable = append(newTable, newRow)
+				default:
+					newRow := make(map[string]interface{})
+					currentDepth := joinStringInterfaceSliceWithDotStar(append([]interface{}{jsonTag}, genericTableName...))
+					newRow[fieldNameField] = currentDepth
+					// fmt.Printf("2.2 ADVANCED COUNTER: CURRENT DEPTH KEY: %v, For Row: %v\n", currentDepth, newRow)
 					newTable = append(newTable, newRow)
 				}
 			default:
@@ -135,9 +140,9 @@ func (iState *iState) traverseAndGenerateRelationalTable(val interface{}, tableN
 			newRow[docTypeField] = tableName
 			newRow[valueField] = ""
 			newRow[keyRefField] = keyref
-			currentDepth := joinStringInterfaceSliceWithDotStar(append([]interface{}{jsonTag}, tableName[1:]...))
-			newRow[fieldNameField] = currentDepth
-			fmt.Printf("ADVANCED COUNTER: CURRENT DEPTH KEY: %v, For Row: %v\n", currentDepth, newRow)
+			// currentDepth := joinStringInterfaceSliceWithDotStar(append([]interface{}{jsonTag}, tableName[1:]...))
+			//newRow[fieldNameField] = currentDepth
+			// fmt.Printf("3 ADVANCED COUNTER: CURRENT DEPTH KEY: %v, For Row: %v\n", currentDepth, newRow)
 			newTable = append(newTable, newRow)
 		}
 	default:
@@ -151,6 +156,7 @@ func (iState *iState) traverseAndGenerateRelationalTable(val interface{}, tableN
 		newGenericTableNameString := joinStringInterfaceSlice(newGenericTableName, seperator) // Here genericPrefix is not taken, as "_" will be added when encoding.
 		// Making inner elements searchable
 		tableNameString := joinStringInterfaceSlice(tableName, seperator)
+		addedGenericRow := false
 		if meta[0].(int) > 0 && newGenericTableNameString != tableNameString && !isQuery {
 			newRow := make(map[string]interface{})
 			newRow[docTypeField] = newGenericTableName
@@ -158,17 +164,24 @@ func (iState *iState) traverseAndGenerateRelationalTable(val interface{}, tableN
 			newRow[keyRefField] = keyref
 			currentDepth := joinStringInterfaceSliceWithDotStar(append([]interface{}{jsonTag}, genericTableName...))
 			newRow[fieldNameField] = currentDepth
-			fmt.Printf("ADVANCED COUNTER: CURRENT DEPTH KEY: %v, For Row: %v\n", currentDepth, newRow)
+			// fmt.Printf("4 ADVANCED COUNTER: CURRENT DEPTH KEY: %v, For Row: %v\n", currentDepth, newRow)
 			newTable = append(newTable, newRow)
+			addedGenericRow = true
 		}
 
 		newRow := make(map[string]interface{})
 		newRow[docTypeField] = tableName
 		newRow[valueField] = reflect.ValueOf(val).Interface()
 		newRow[keyRefField] = keyref
-		currentDepth := joinStringInterfaceSliceWithDotStar(append([]interface{}{jsonTag}, tableName[1:]...))
-		newRow[fieldNameField] = currentDepth
-		fmt.Printf("ADVANCED COUNTER: CURRENT DEPTH KEY: %v, For Row: %v\n", currentDepth, newRow)
+		switch !isQuery {
+		case true && !addedGenericRow:
+			currentDepth := joinStringInterfaceSliceWithDotStar(append([]interface{}{jsonTag}, tableName[1:]...))
+			newRow[fieldNameField] = currentDepth
+			// fmt.Printf("5 ADVANCED COUNTER: CURRENT DEPTH KEY: %v, For Row: %v\n", currentDepth, newRow)
+		default:
+			currentDepth := joinStringInterfaceSliceWithDotStar(append([]interface{}{jsonTag}, genericTableName...))
+			newRow[fieldNameField] = currentDepth
+		}
 		newTable = append(newTable, newRow)
 	}
 	return
@@ -185,15 +198,15 @@ func (iState *iState) getPrimaryKey(object interface{}) (key string) {
 }
 
 //
-func (iState *iState) encodeState(oMap map[string]interface{}, keyref string, isQuery ...bool) (encodedKeyValPairs map[string][]byte, iStateErr Error) {
+func (iState *iState) encodeState(oMap map[string]interface{}, keyref string, isQuery ...bool) (encodedKeyValPairs map[string][]byte, docsCounter map[string]int, encKeyDocNameMap map[string]string, iStateErr Error) {
 	iStateLogger.Debugf("Inside encodeState")
 	defer iStateLogger.Debugf("Exiting encodeState")
 	if len(isQuery) == 0 {
 		isQuery = []bool{false}
 	}
-
+	docsCounter = make(map[string]int)
 	encodedKeyValPairs = make(map[string][]byte)
-
+	encKeyDocNameMap = make(map[string]string)
 	// RQ-Index key - value
 	relationalTables, iStateErr := iState.generateRelationalTables(oMap, keyref, isQuery[0])
 	if iStateErr != nil {
@@ -202,24 +215,42 @@ func (iState *iState) encodeState(oMap map[string]interface{}, keyref string, is
 
 	for i := 0; i < len(relationalTables); i++ {
 		for j := 0; j < len(relationalTables[i]); j++ {
-			encodedKeyParts := relationalTables[i][j][docTypeField].([]interface{})
-			for k := 0; k < len(encodedKeyParts); k++ {
-				encodedKeyParts[k], iStateErr = encode(encodedKeyParts[k])
+			repeatedRow := false
+			encodedKey := ""
+			if docType, ok := relationalTables[i][j][docTypeField]; ok {
+				encodedKeyParts := docType.([]interface{})
+				for k := 0; k < len(encodedKeyParts); k++ {
+					encodedKeyParts[k], iStateErr = encode(encodedKeyParts[k])
+					if iStateErr != nil {
+						return
+					}
+				}
+				encodedVal := ""
+				valInterface := relationalTables[i][j][valueField]
+				encodedVal, iStateErr = encode(valInterface)
 				if iStateErr != nil {
 					return
 				}
-			}
-			encodedVal := ""
-			valInterface := relationalTables[i][j][valueField]
-			encodedVal, iStateErr = encode(valInterface)
-			if iStateErr != nil {
-				return
+
+				encodedKey = joinStringInterfaceSlice(encodedKeyParts, seperator) + seperator + encodedVal + seperator + keyref
+
+				switch _, ok := encodedKeyValPairs[encodedKey]; ok {
+				case true:
+					repeatedRow = true
+				default:
+					encodedKeyValPairs[encodedKey] = []byte(keyref)
+				}
 			}
 
-			encodedKey := joinStringInterfaceSlice(encodedKeyParts, seperator) + seperator + encodedVal + seperator + keyref
-			encodedKeyValPairs[encodedKey] = []byte(keyref)
+			if fieldNameRow, ok := relationalTables[i][j][fieldNameField]; ok && !repeatedRow {
+				if encodedKey != "" {
+					encKeyDocNameMap[encodedKey] = fieldNameRow.(string)
+				}
+				docsCounter[fieldNameRow.(string)]++
+			}
 		}
 	}
+
 	return
 }
 
@@ -748,65 +779,6 @@ func generateDepthKindMap(structRef interface{}, depthKindMap map[string]reflect
 	return
 }
 
-// //
-// func generatejsonFieldKindMap(structRef interface{}, jsonFieldKindMap map[string]reflect.Kind, meta ...interface{}) (iStateErr Error) {
-// 	// meta[0] = previousKey
-// 	// meta[1] = depth
-// 	prefix := ""
-// 	switch len(meta) > 0 {
-// 	case true:
-// 		prefix = meta[0].(string) + dot
-// 	default:
-// 		meta = []interface{}{"", 0}
-// 	}
-// 	refVal := reflect.ValueOf(structRef)
-// 	switch kind := refVal.Kind(); kind {
-// 	case reflect.Slice, reflect.Array:
-// 		sliceLen := refVal.Len()
-// 		fieldName := prefix + star
-// 		for i := 0; i < sliceLen; i++ {
-// 			innerVal := refVal.Index(i).Interface()
-// 			// At this depth, the value will be slice's index like 0,1,2, its type Int
-// 			jsonFieldKindMap[fieldName] = reflect.Int
-// 			iStateErr = generatejsonFieldKindMap(innerVal, jsonFieldKindMap, fieldName, meta[1].(int)+1)
-// 			if iStateErr != nil {
-// 				return
-// 			}
-// 		}
-// 	case reflect.Map:
-// 		mapKeys := refVal.MapKeys()
-// 		fieldName := prefix + star
-// 		for i := 0; i < len(mapKeys); i++ {
-// 			innerVal := refVal.MapIndex(mapKeys[i]).Interface()
-// 			//jsonFieldKindMap[fieldName] = refVal.MapIndex(mapKeys[i]).Kind()
-// 			jsonFieldKindMap[fieldName] = mapKeys[i].Kind()
-// 			iStateErr = generatejsonFieldKindMap(innerVal, jsonFieldKindMap, fieldName, meta[1].(int)+1)
-// 			if iStateErr != nil {
-// 				return
-// 			}
-// 		}
-// 	case reflect.Struct:
-// 		for i := 0; i < refVal.NumField(); i++ {
-// 			field := reflect.TypeOf(structRef).Field(i)
-// 			jsonTag := prefix + field.Tag.Get("json")
-// 			if field.Tag.Get("json") == "" {
-// 				iStateErr = NewError(nil, 2001, field.Name, reflect.TypeOf(structRef))
-// 				return
-// 			}
-// 			jsonFieldKindMap[jsonTag] = refVal.Field(i).Kind()
-// 			iStateErr = generatejsonFieldKindMap(refVal.Field(i).Interface(), jsonFieldKindMap, jsonTag, meta[1].(int)+1)
-// 			if iStateErr != nil {
-// 				return
-// 			}
-
-// 		}
-// 	default:
-// 		fieldName := meta[0].(string) // Not using prefix here, to remove "." at end
-// 		jsonFieldKindMap[fieldName] = refVal.Kind()
-// 	}
-// 	return
-// }
-
 func removeLastSeparators(input string) (val string) {
 	val = input
 	endIndex := -1
@@ -846,4 +818,9 @@ func joinStringInterfaceSliceWithDotStar(slice []interface{}) (joinedString stri
 		}
 	}
 	return
+}
+
+func initQueryEnv(qEnv *queryEnv) {
+	qEnv.ufetchedKVMap = make(map[string][]byte)
+	qEnv.ukeyEncKVMap = make(map[string]map[string][]byte)
 }

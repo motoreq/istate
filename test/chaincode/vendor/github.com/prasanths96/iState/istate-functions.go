@@ -7,15 +7,73 @@ import (
 	"fmt"
 	"github.com/hyperledger/fabric/core/chaincode/shim"
 	"reflect"
+	"sync"
 )
 
 type iState struct {
+	mux               sync.Mutex
 	structRef         interface{}
 	fieldJSONIndexMap map[string]int
 	jsonFieldKindMap  map[string]reflect.Kind
 	mapKeyKindMap     map[string]reflect.Kind
 	depthKindMap      map[string]reflect.Kind
 	primaryIndex      int
+	docsCounter       map[string]int
+
+	//
+	kvCache map[string][]byte
+}
+
+func (iState *iState) readkvCache(key string) (valBytes []byte, ok bool) {
+	iState.mux.Lock()
+	defer iState.mux.Unlock()
+	valBytes, ok = iState.kvCache[key]
+	return
+}
+
+func (iState *iState) addkvCache(key string, valBytes []byte) {
+	iState.mux.Lock()
+	defer iState.mux.Unlock()
+	iState.kvCache[key] = valBytes
+	return
+}
+
+func (iState *iState) incDocsCounter(key string, count int) {
+	iState.mux.Lock()
+	defer iState.mux.Unlock()
+
+	iState.docsCounter[key] += count
+}
+
+func (iState *iState) decDocsCounter(key string, count int) {
+	iState.mux.Lock()
+	defer iState.mux.Unlock()
+
+	iState.docsCounter[key] -= count
+}
+
+func (iState *iState) readDocsCounter(key string) (count int, ok bool) {
+	iState.mux.Lock()
+	defer iState.mux.Unlock()
+
+	count, ok = iState.docsCounter[key]
+	return
+}
+
+// Need to Copy for every transaction
+func (is *iState) CopyiState() (iStateInterface IStateInterface) {
+	is.mux.Lock()
+	defer is.mux.Unlock()
+	iStateInterface = &iState{
+		structRef:         is.structRef,
+		fieldJSONIndexMap: is.fieldJSONIndexMap,
+		jsonFieldKindMap:  is.jsonFieldKindMap,
+		mapKeyKindMap:     is.mapKeyKindMap,
+		depthKindMap:      is.depthKindMap,
+		primaryIndex:      is.primaryIndex,
+		docsCounter:       is.docsCounter,
+	}
+	return
 }
 
 // NewiState function is used to
@@ -47,6 +105,8 @@ func NewiState(object interface{}) (iStateInterface IStateInterface, iStateErr E
 	if iStateErr != nil {
 		return
 	}
+
+	docsCounter := make(map[string]int)
 	iStateInterface = &iState{
 		structRef:         filledRef,
 		fieldJSONIndexMap: fieldJSONIndexMap,
@@ -54,10 +114,14 @@ func NewiState(object interface{}) (iStateInterface IStateInterface, iStateErr E
 		mapKeyKindMap:     mapKeyKindMap,
 		depthKindMap:      depthKindMap,
 		primaryIndex:      i,
+		docsCounter:       docsCounter,
+		kvCache:           make(map[string][]byte),
 	}
 	fmt.Println("JSON FIELD KIND MAP", jsonFieldKindMap)
 	fmt.Println("MAP KEY KIND MAP", mapKeyKindMap)
 	fmt.Println("DEPTH KIND MAP", depthKindMap)
+	fmt.Println("=========================================================================================")
+	fmt.Println("DOCSCOUNT MAP:", docsCounter)
 
 	return
 }
@@ -88,7 +152,7 @@ func (iState *iState) CreateState(stub shim.ChaincodeStubInterface, object inter
 		return
 	}
 
-	encodedKeyValPairs, iStateErr := iState.encodeState(oMap, keyref)
+	encodedKeyValPairs, docsCounter, _, iStateErr := iState.encodeState(oMap, keyref)
 	if iStateErr != nil {
 		return
 	}
@@ -102,6 +166,10 @@ func (iState *iState) CreateState(stub shim.ChaincodeStubInterface, object inter
 			iStateErr = NewError(err, 1001)
 			return
 		}
+	}
+
+	for index, count := range docsCounter {
+		iState.incDocsCounter(index, count)
 	}
 
 	return nil
@@ -176,17 +244,17 @@ func (iState *iState) UpdateState(stub shim.ChaincodeStubInterface, object inter
 		iStateErr = NewError(nil, 1004)
 		return
 	}
-	fmt.Println("Changes: ", appendOrModifyMap, deleteMap)
+	// fmt.Println("Changes: ", appendOrModifyMap, deleteMap)
 
 	// Delete first, so that TestStruct_aMap_user1 (map key) does not get deleted.
 	// When updating same key of a map, the above key gets over-writted at first,
 	// then when deleting, the over-written key gets deleted.
-	deleteEncodedKeyValPairs, iStateErr := iState.encodeState(deleteMap, keyref)
+	deleteEncodedKeyValPairs, delDocsCounter, _, iStateErr := iState.encodeState(deleteMap, keyref)
 	if iStateErr != nil {
 		// iStateErr = iStateErr
 		return
 	}
-	appendEncodedKeyValPairs, iStateErr := iState.encodeState(appendOrModifyMap, keyref)
+	appendEncodedKeyValPairs, addDocsCounter, _, iStateErr := iState.encodeState(appendOrModifyMap, keyref)
 	if iStateErr != nil {
 		// iStateErr = iStateErr
 		return
@@ -209,40 +277,45 @@ func (iState *iState) UpdateState(stub shim.ChaincodeStubInterface, object inter
 		}
 	}
 
+	for index, count := range delDocsCounter {
+		iState.decDocsCounter(index, count)
+	}
+	for index, count := range addDocsCounter {
+		iState.incDocsCounter(index, count)
+	}
+
 	return nil
 }
 
 // DeleteState function is used to
-func (iState *iState) DeleteState(stub shim.ChaincodeStubInterface, primaryKey interface{}) (outiStateErr Error) {
+func (iState *iState) DeleteState(stub shim.ChaincodeStubInterface, primaryKey interface{}) (iStateErr Error) {
 	iStateLogger.Infof("Inside DeleteState")
 	defer iStateLogger.Infof("Exiting DeleteState")
 
 	keyref := fmt.Sprintf("%v", primaryKey)
 
-	stateBytes, tiStateErr := iState.ReadState(stub, keyref)
-	if tiStateErr != nil {
-		outiStateErr = tiStateErr
+	stateBytes, iStateErr := iState.ReadState(stub, keyref)
+	if iStateErr != nil {
 		return
 	}
 
 	if stateBytes == nil {
-		outiStateErr = NewError(nil, 1013, keyref)
+		iStateErr = NewError(nil, 1013, keyref)
 		return
 	}
 
 	var source map[string]interface{}
 	err := json.Unmarshal(stateBytes, &source)
 	if err != nil {
-		outiStateErr = NewError(err, 1011)
+		iStateErr = NewError(err, 1011)
 		return
 	}
 
 	// Delete first, so that TestStruct_aMap_user1 (map key) does not get deleted.
 	// When updating same key of a map, the above key gets over-writted at first,
 	// then when deleting, the over-written key gets deleted.
-	encodedKeyValPairs, iStateErr := iState.encodeState(source, keyref)
+	encodedKeyValPairs, delDocsCounter, _, iStateErr := iState.encodeState(source, keyref)
 	if iStateErr != nil {
-		outiStateErr = iStateErr
 		return
 	}
 	// Main key - value
@@ -251,9 +324,13 @@ func (iState *iState) DeleteState(stub shim.ChaincodeStubInterface, primaryKey i
 	for key := range encodedKeyValPairs {
 		err = stub.DelState(key)
 		if err != nil {
-			outiStateErr = NewError(err, 1012)
+			iStateErr = NewError(err, 1012)
 			return
 		}
+	}
+
+	for index, count := range delDocsCounter {
+		iState.decDocsCounter(index, count)
 	}
 
 	return nil
