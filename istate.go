@@ -1,4 +1,4 @@
-// Copyright 2020 <>. All rights reserved.
+//
 
 package istate
 
