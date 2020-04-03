@@ -1,5 +1,5 @@
 # Custom
 node_modules
 
-# .\test\network\
-# .\test\sdk
+.\test\network\
+.\test\sdk
