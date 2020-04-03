@@ -7,20 +7,10 @@ import (
 	"github.com/hyperledger/fabric/core/chaincode/shim"
 )
 
-func (iState *iState) evalAndFilterEq(stub shim.ChaincodeStubInterface, query []map[string]interface{}, keyEncKVMap map[string]map[string][]byte) (iStateErr Error) {
-	keyref := ""
-	for i := 0; i < len(query); i++ {
-		var encodedKeyVal map[string][]byte
-		encodedKeyVal, _, _, iStateErr = iState.encodeState(query[i], keyref, true)
-		if iStateErr != nil {
-			return
-		}
-
-		for encKeyWithStar := range encodedKeyVal {
-			filter(keyEncKVMap, removeStarFromKey(encKeyWithStar), evalEq)
-		}
+func evalAndFilterEq(stub shim.ChaincodeStubInterface, encodedKeyVal map[string][]byte, keyEncKVMap map[string]map[string][]byte) {
+	for encKeyWithoutStar := range encodedKeyVal {
+		filter(keyEncKVMap, encKeyWithoutStar, evalEq)
 	}
-	return
 }
 
 func evalAndFilterNeq(stub shim.ChaincodeStubInterface, query map[string]interface{}) {
