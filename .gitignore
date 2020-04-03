@@ -1,2 +1,5 @@
 # Custom
 node_modules
+
+# .\test\network\
+# .\test\sdk
