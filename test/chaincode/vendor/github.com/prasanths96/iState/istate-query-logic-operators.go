@@ -1,8 +1,8 @@
-// Copyright 2020 <>. All rights reserved.
+//
 
 package istate
 
-func andOperation(keyValuePairs ...map[string]map[string][]byte) (result map[string]map[string][]byte) {
+func andOperation(keyValuePairs ...map[string]map[string]string) (result map[string]map[string]string) {
 	switch len(keyValuePairs) {
 	case 0:
 		return
@@ -27,7 +27,7 @@ func andOperation(keyValuePairs ...map[string]map[string][]byte) (result map[str
 	return
 }
 
-func orOperation(keyValuePairs ...map[string]map[string][]byte) (result map[string]map[string][]byte) {
+func orOperation(keyValuePairs ...map[string]map[string]string) (result map[string]map[string]string) {
 	switch len(keyValuePairs) {
 	case 0:
 		return

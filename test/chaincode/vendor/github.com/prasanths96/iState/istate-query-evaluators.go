@@ -1,4 +1,4 @@
-// Copyright 2020 <>. All rights reserved.
+//
 
 package istate
 
@@ -7,7 +7,7 @@ import (
 	"github.com/hyperledger/fabric/core/chaincode/shim"
 )
 
-func evalAndFilterEq(stub shim.ChaincodeStubInterface, encodedKeyVal map[string][]byte, keyEncKVMap map[string]map[string][]byte) {
+func evalAndFilterEq(stub shim.ChaincodeStubInterface, encodedKeyVal map[string]string, keyEncKVMap map[string]map[string]string) {
 	for encKeyWithoutStar := range encodedKeyVal {
 		filter(keyEncKVMap, encKeyWithoutStar, evalEq)
 	}

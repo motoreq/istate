@@ -25,84 +25,10 @@ type iState struct {
 	keyEncKVCache *keyEncKVCache
 }
 
-type kvCache struct {
-	mux     sync.Mutex
-	kvCache map[string][]byte
-}
-
-type keyEncKVCache struct {
-	mux           sync.Mutex
-	keyEncKVCache map[string]map[string][]byte
-}
-
-func (iState *iState) readkvCache(key string) (valBytes []byte, ok bool) {
-	iState.kvCache.mux.Lock()
-	defer iState.kvCache.mux.Unlock()
-	valBytes, ok = iState.kvCache.kvCache[key]
-	return
-}
-
-func (iState *iState) addkvCache(key string, valBytes []byte) {
-	iState.kvCache.mux.Lock()
-	defer iState.kvCache.mux.Unlock()
-	iState.kvCache.kvCache[key] = valBytes
-	return
-}
-
-func (iState *iState) readkeyEncKVCache(key string) (encKV map[string][]byte, ok bool) {
-	iState.keyEncKVCache.mux.Lock()
-	defer iState.keyEncKVCache.mux.Unlock()
-	encKV, ok = iState.keyEncKVCache.keyEncKVCache[key]
-	return
-}
-
-func (iState *iState) addkeyEncKVCache(key string, encKV map[string][]byte) {
-	iState.keyEncKVCache.mux.Lock()
-	defer iState.keyEncKVCache.mux.Unlock()
-	iState.keyEncKVCache.keyEncKVCache[key] = encKV
-	return
-}
-
-func (iState *iState) incDocsCounter(key string, count int) {
-	iState.mux.Lock()
-	defer iState.mux.Unlock()
-
-	iState.docsCounter[key] += count
-}
-
-func (iState *iState) decDocsCounter(key string, count int) {
-	iState.mux.Lock()
-	defer iState.mux.Unlock()
-
-	iState.docsCounter[key] -= count
-}
-
-func (iState *iState) readDocsCounter(key string) (count int, ok bool) {
-	iState.mux.Lock()
-	defer iState.mux.Unlock()
-
-	count, ok = iState.docsCounter[key]
-	return
-}
-
-// Need to Copy for every transaction
-func (is *iState) CopyiState() (iStateInterface IStateInterface) {
-	is.mux.Lock()
-	defer is.mux.Unlock()
-	iStateInterface = &iState{
-		structRef:         is.structRef,
-		fieldJSONIndexMap: is.fieldJSONIndexMap,
-		jsonFieldKindMap:  is.jsonFieldKindMap,
-		mapKeyKindMap:     is.mapKeyKindMap,
-		depthKindMap:      is.depthKindMap,
-		primaryIndex:      is.primaryIndex,
-		docsCounter:       is.docsCounter,
-	}
-	return
-}
+type indexValType map[string]struct{}
 
 // NewiState function is used to
-func NewiState(object interface{}) (iStateInterface IStateInterface, iStateErr Error) {
+func NewiState(object interface{}) (iStateInterface Interface, iStateErr Error) {
 	iStateLogger.Infof("Inside NewiState")
 	defer iStateLogger.Infof("Exiting NewiState")
 
@@ -184,12 +110,16 @@ func (iState *iState) CreateState(stub shim.ChaincodeStubInterface, object inter
 	}
 
 	// Main key - value
-	encodedKeyValPairs[keyref] = mo
+	err = stub.PutState(keyref, mo)
+	if err != nil {
+		iStateErr = NewError(err, 1001)
+		return
+	}
 
+	// Index
 	for key, val := range encodedKeyValPairs {
-		err = stub.PutState(key, val)
-		if err != nil {
-			iStateErr = NewError(err, 1001)
+		iStateErr = putIndex(stub, key, val)
+		if iStateErr != nil {
 			return
 		}
 	}
@@ -277,28 +207,29 @@ func (iState *iState) UpdateState(stub shim.ChaincodeStubInterface, object inter
 	// then when deleting, the over-written key gets deleted.
 	deleteEncodedKeyValPairs, delDocsCounter, _, iStateErr := iState.encodeState(deleteMap, keyref)
 	if iStateErr != nil {
-		// iStateErr = iStateErr
 		return
 	}
 	appendEncodedKeyValPairs, addDocsCounter, _, iStateErr := iState.encodeState(appendOrModifyMap, keyref)
 	if iStateErr != nil {
-		// iStateErr = iStateErr
 		return
 	}
 	// Main key - value
-	appendEncodedKeyValPairs[keyref] = mo
+	err = stub.PutState(keyref, mo)
+	if err != nil {
+		iStateErr = NewError(err, 1009)
+		return
+	}
 
-	for key := range deleteEncodedKeyValPairs {
-		err = stub.DelState(key)
-		if err != nil {
-			iStateErr = NewError(err, 1008)
+	// Index
+	for key, val := range deleteEncodedKeyValPairs {
+		iStateErr = delIndex(stub, key, val)
+		if iStateErr != nil {
 			return
 		}
 	}
 	for key, val := range appendEncodedKeyValPairs {
-		err = stub.PutState(key, val)
-		if err != nil {
-			iStateErr = NewError(err, 1009)
+		iStateErr = putIndex(stub, key, val)
+		if iStateErr != nil {
 			return
 		}
 	}
@@ -345,12 +276,16 @@ func (iState *iState) DeleteState(stub shim.ChaincodeStubInterface, primaryKey i
 		return
 	}
 	// Main key - value
-	encodedKeyValPairs[keyref] = stateBytes
+	// encodedKeyValPairs[keyref] = stateBytes
+	err = stub.DelState(keyref)
+	if err != nil {
+		iStateErr = NewError(err, 1012)
+		return
+	}
 
-	for key := range encodedKeyValPairs {
-		err = stub.DelState(key)
-		if err != nil {
-			iStateErr = NewError(err, 1012)
+	for key, val := range encodedKeyValPairs {
+		iStateErr = delIndex(stub, key, val)
+		if iStateErr != nil {
 			return
 		}
 	}
@@ -361,3 +296,19 @@ func (iState *iState) DeleteState(stub shim.ChaincodeStubInterface, primaryKey i
 
 	return nil
 }
+
+// //
+// func (is *iState) CopyiState() (iStateInterface IStateInterface) {
+// 	is.mux.Lock()
+// 	defer is.mux.Unlock()
+// 	iStateInterface = &iState{
+// 		structRef:         is.structRef,
+// 		fieldJSONIndexMap: is.fieldJSONIndexMap,
+// 		jsonFieldKindMap:  is.jsonFieldKindMap,
+// 		mapKeyKindMap:     is.mapKeyKindMap,
+// 		depthKindMap:      is.depthKindMap,
+// 		primaryIndex:      is.primaryIndex,
+// 		docsCounter:       is.docsCounter,
+// 	}
+// 	return
+// }

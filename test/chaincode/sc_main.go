@@ -9,8 +9,8 @@ import (
 )
 
 type TestSmartContract struct {
-	TestStructiState istate.IStateInterface
-	SomeStructiState istate.IStateInterface
+	TestStructiState istate.Interface
+	SomeStructiState istate.Interface
 }
 
 // Init initializes chaincode.

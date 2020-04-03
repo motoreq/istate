@@ -20,7 +20,7 @@ var errorCodes = map[int]string{
 	1006: "Marshal error at UpdateState",
 	1007: "Unmarshal error at UpdateState",
 	1008: "UpdateState: DelStateError",
-	1009: "UpdateState: PutState",
+	1009: "UpdateState: PutStateError",
 	1010: "Marshal error at DeleteState",
 	1011: "Unmarshal error at DeleteState",
 	1012: "DeleteState: DelStateError",
@@ -44,6 +44,14 @@ var errorCodes = map[int]string{
 	2013: "findMapDifference: Source and Target type are not same, Received: %v %v",
 	2014: "findMapDifference: Only map kind is expected, Received: %v %v",
 	2015: "traverseAndGenerateRelationalTable: currentdepth: %v, not found in depthKindMap",
+	2016: "getIndex: Unmarshal error",
+	2017: "putIndex: Marshal error",
+	2018: "putIndex: Unmarshal error",
+	2019: "delIndex: DelState error",
+	2020: "delIndex: Marshal error",
+	2021: "putIndex: PutState error",
+	2022: "getIndex: GetState error",
+	2023: "delIndex: GetState error",
 
 	// Query
 	3001: "Query: Marshal Error:",

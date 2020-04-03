@@ -1,4 +1,4 @@
-// Copyright 2020 <>. All rights reserved.
+//
 
 package istate
 
@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-func filter(keyEncKVMap map[string]map[string][]byte, encKey string, evalFunc func(string, map[string][]byte) bool) {
+func filter(keyEncKVMap map[string]map[string]string, encKey string, evalFunc func(string, map[string]string) bool) {
 	for key, encKV := range keyEncKVMap {
 		if !evalFunc(encKey, encKV) {
 			delete(keyEncKVMap, key)
@@ -14,7 +14,7 @@ func filter(keyEncKVMap map[string]map[string][]byte, encKey string, evalFunc fu
 	}
 }
 
-func evalEq(encKey string, encKV map[string][]byte) (found bool) {
+func evalEq(encKey string, encKV map[string]string) (found bool) {
 	for index := range encKV {
 		if strings.HasPrefix(index, encKey) {
 			found = true
