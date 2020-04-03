@@ -41,3 +41,8 @@ type DeleteStateInput struct {
 type QueryInput struct {
 	QueryString string `json:""queryString`
 }
+
+type QueryOut struct {
+	Result []TestStruct `json:"result"`
+	Count  int          `json:"count"`
+}

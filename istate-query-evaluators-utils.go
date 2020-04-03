@@ -3,23 +3,29 @@
 package istate
 
 import (
-	"strings"
+// "strings"
 )
 
-func filter(keyEncKVMap map[string]map[string][]byte, encKey string, evalFunc func(string, map[string][]byte) bool) {
+// keyRefSeparated index only expected
+func filter(keyEncKVMap map[string]map[string][]byte, encQKey string, evalFunc func(string, map[string][]byte) bool) {
 	for key, encKV := range keyEncKVMap {
-		if !evalFunc(encKey, encKV) {
+		if !evalFunc(encQKey, encKV) {
 			delete(keyEncKVMap, key)
 		}
 	}
 }
 
-func evalEq(encKey string, encKV map[string][]byte) (found bool) {
-	for index := range encKV {
-		if strings.HasPrefix(index, encKey) {
-			found = true
-			break
-		}
-	}
+// func evalEq(encQKey string, encKV map[string][]byte) (found bool) {
+// 	for index := range encKV {
+// 		if strings.HasPrefix(index, encQKey) {
+// 			found = true
+// 			break
+// 		}
+// 	}
+// 	return
+// }
+
+func evalEq(encQKey string, encKV map[string][]byte) (found bool) {
+	_, found = encKV[encQKey]
 	return
 }

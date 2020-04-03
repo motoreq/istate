@@ -9,8 +9,8 @@ import (
 )
 
 type TestSmartContract struct {
-	TestStructiState istate.IStateInterface
-	SomeStructiState istate.IStateInterface
+	TestStructiState istate.Interface
+	SomeStructiState istate.Interface
 }
 
 // Init initializes chaincode.
@@ -193,7 +193,11 @@ func (sc *TestSmartContract) QueryState(stub shim.ChaincodeStubInterface) pb.Res
 		return shim.Error(err.Error())
 	}
 
-	mr, err := json.Marshal(result.([]TestStruct))
+	out := QueryOut{
+		Result: result.([]TestStruct),
+		Count:  len(result.([]TestStruct)),
+	}
+	mr, err := json.Marshal(out)
 	if err != nil {
 		return shim.Error(err.Error())
 	}

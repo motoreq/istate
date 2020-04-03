@@ -7,8 +7,8 @@ import (
 	"github.com/hyperledger/fabric/core/chaincode/shim"
 )
 
-func evalAndFilterEq(stub shim.ChaincodeStubInterface, encodedKeyVal map[string][]byte, keyEncKVMap map[string]map[string][]byte) {
-	for encKeyWithoutStar := range encodedKeyVal {
+func evalAndFilterEq(stub shim.ChaincodeStubInterface, encQKeyVal map[string][]byte, keyEncKVMap map[string]map[string][]byte) {
+	for encKeyWithoutStar := range encQKeyVal {
 		filter(keyEncKVMap, encKeyWithoutStar, evalEq)
 	}
 }
