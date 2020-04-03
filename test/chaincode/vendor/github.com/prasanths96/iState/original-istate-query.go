@@ -239,8 +239,6 @@ func (iState *iState) parseAndEvalSingle(stub shim.ChaincodeStubInterface, uQuer
 	if iStateErr != nil {
 		return
 	}
-	_ = bestKey
-	_ = fetchFunc
 
 	var fetchedKVMap map[string][]byte
 	fetchedKVMap, iStateErr = fetchFunc(stub, bestKey, qEnv)

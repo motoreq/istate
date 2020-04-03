@@ -22,7 +22,10 @@ const (
 	dot  = "."
 
 	seperator = "_"
+	null      = "\000"
 )
+
+var nullByte = []byte{0x01}
 
 var numDigits = map[int]string{
 	1:  "01",

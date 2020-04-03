@@ -89,6 +89,7 @@ services:
     # - CORE_LEDGER_STATE_COUCHDBCONFIG_COUCHDBADDRESS=couch0:5984
     - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.users.medisot.com:7051
     volumes:
+    - /mnt/ramdisk:/var/hyperledger
     - /var/run/:/host/var/run/
     - ./crypto-config/peerOrganizations/users.medisot.com/peers/peer0.users.medisot.com/msp:/etc/hyperledger/fabric/msp
     - ./crypto-config/peerOrganizations/users.medisot.com/peers/peer0.users.medisot.com/tls:/etc/hyperledger/fabric/tls

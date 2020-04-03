@@ -21,20 +21,45 @@ type iState struct {
 	docsCounter       map[string]int
 
 	//
+	kvCache       *kvCache
+	keyEncKVCache *keyEncKVCache
+}
+
+type kvCache struct {
+	mux     sync.Mutex
 	kvCache map[string][]byte
 }
 
+type keyEncKVCache struct {
+	mux           sync.Mutex
+	keyEncKVCache map[string]map[string][]byte
+}
+
 func (iState *iState) readkvCache(key string) (valBytes []byte, ok bool) {
-	iState.mux.Lock()
-	defer iState.mux.Unlock()
-	valBytes, ok = iState.kvCache[key]
+	iState.kvCache.mux.Lock()
+	defer iState.kvCache.mux.Unlock()
+	valBytes, ok = iState.kvCache.kvCache[key]
 	return
 }
 
 func (iState *iState) addkvCache(key string, valBytes []byte) {
-	iState.mux.Lock()
-	defer iState.mux.Unlock()
-	iState.kvCache[key] = valBytes
+	iState.kvCache.mux.Lock()
+	defer iState.kvCache.mux.Unlock()
+	iState.kvCache.kvCache[key] = valBytes
+	return
+}
+
+func (iState *iState) readkeyEncKVCache(key string) (encKV map[string][]byte, ok bool) {
+	iState.keyEncKVCache.mux.Lock()
+	defer iState.keyEncKVCache.mux.Unlock()
+	encKV, ok = iState.keyEncKVCache.keyEncKVCache[key]
+	return
+}
+
+func (iState *iState) addkeyEncKVCache(key string, encKV map[string][]byte) {
+	iState.keyEncKVCache.mux.Lock()
+	defer iState.keyEncKVCache.mux.Unlock()
+	iState.keyEncKVCache.keyEncKVCache[key] = encKV
 	return
 }
 
@@ -115,7 +140,8 @@ func NewiState(object interface{}) (iStateInterface IStateInterface, iStateErr E
 		depthKindMap:      depthKindMap,
 		primaryIndex:      i,
 		docsCounter:       docsCounter,
-		kvCache:           make(map[string][]byte),
+		kvCache:           &kvCache{kvCache: make(map[string][]byte)},
+		keyEncKVCache:     &keyEncKVCache{keyEncKVCache: make(map[string]map[string][]byte)},
 	}
 	fmt.Println("JSON FIELD KIND MAP", jsonFieldKindMap)
 	fmt.Println("MAP KEY KIND MAP", mapKeyKindMap)

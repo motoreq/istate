@@ -4,6 +4,7 @@ package istate
 
 import (
 	"github.com/hyperledger/fabric/core/chaincode/shim"
+	"strings"
 )
 
 func (iState *iState) fetchEq(stub shim.ChaincodeStubInterface, encodedKey string, qEnv *queryEnv) (fetchedKVMap map[string][]byte, iStateErr Error) {
@@ -161,7 +162,9 @@ func (iState *iState) getStateByRange(stub shim.ChaincodeStubInterface, startKey
 			iStateErr = NewError(err, 3007)
 			return
 		}
-		keyRef := string(iteratorResult.GetValue())
+		// keyRef := string(iteratorResult.GetValue())
+		indexkey := iteratorResult.GetKey()
+		keyRef := indexkey[strings.LastIndex(indexkey, null)+1:]
 		if _, ok := qEnv.ufetchedKVMap[keyRef]; ok {
 			if uValBytes, ok := fetchedKVMap[keyRef]; !ok {
 				fetchedKVMap[keyRef] = uValBytes

@@ -58,6 +58,8 @@ services:
     - GODEBUG=netdns=go
     working_dir: /opt/gopath/src/github.com/hyperledger/fabric/peer
     command: peer node start
+    cap_add:
+      - ALL
   zookeeper:
     image: hyperledger/fabric-zookeeper:${ZK_TAG}
     restart: always

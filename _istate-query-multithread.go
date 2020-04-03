@@ -249,12 +249,12 @@ func (iState *iState) parseAndEvalSingle(stub shim.ChaincodeStubInterface, uQuer
 
 	var bestKey string
 	var fetchFunc func(shim.ChaincodeStubInterface, string, *queryEnv) (map[string][]byte, Error)
-	bestKey, fetchFunc, iStateErr = iState.getBestEncodedKeyFunc(querySet)
+	var queryEncodedKVset encodedKVs
+
+	bestKey, fetchFunc, queryEncodedKVset, iStateErr = iState.getBestEncodedKeyFunc(querySet)
 	if iStateErr != nil {
 		return
 	}
-	_ = bestKey
-	_ = fetchFunc
 
 	var fetchedKVMap map[string][]byte
 	fetchedKVMap, iStateErr = fetchFunc(stub, bestKey, qEnv)
@@ -279,7 +279,7 @@ func (iState *iState) parseAndEvalSingle(stub shim.ChaincodeStubInterface, uQuer
 
 	}
 
-	iStateErr = iState.evalAndFilterEq(stub, querySet.eq, keyEncKVMap)
+	evalAndFilterEq(stub, queryEncodedKVset.eq, keyEncKVMap)
 
 	//resultEq, iStateErr = iState.evaluateEq(stub, eqQuery)
 	// iState.evaluateNeq(stub, neqQuery)
@@ -476,8 +476,8 @@ func convertToPrimitiveType(toConvert string, kind reflect.Kind) (convertedVal i
 	return
 }
 
-func (iState *iState) getBestEncodedKeyFunc(querySet querys) (encodedKey string, fetchFunc func(shim.ChaincodeStubInterface, string, *queryEnv) (map[string][]byte, Error), iStateErr Error) {
-	encodedKVSet := encodedKVs{
+func (iState *iState) getBestEncodedKeyFunc(querySet querys) (encodedKey string, fetchFunc func(shim.ChaincodeStubInterface, string, *queryEnv) (map[string][]byte, Error), encodedKVSet encodedKVs, iStateErr Error) {
+	encodedKVSet = encodedKVs{
 		eq:    make(map[string][]byte),
 		neq:   make(map[string][]byte),
 		gt:    make(map[string][]byte),
