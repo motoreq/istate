@@ -149,7 +149,8 @@ func (iState *iState) traverseAndGenerateRelationalTable(val interface{}, tableN
 		if val == nil {
 			break
 		}
-
+		var currentDepthStar string
+		var currentDepth string
 		newGenericTableName := []interface{}{iStateTag}
 		newGenericTableName = append(newGenericTableName, meta[1].([]interface{})...)
 
@@ -158,30 +159,57 @@ func (iState *iState) traverseAndGenerateRelationalTable(val interface{}, tableN
 		tableNameString := joinStringInterfaceSlice(tableName, seperator)
 		addedGenericRow := false
 		if meta[0].(int) > 0 && newGenericTableNameString != tableNameString && !isQuery {
+			currentDepthStar = joinStringInterfaceSliceWithDotStar(append([]interface{}{jsonTag}, genericTableName...))
+			currentDepth = joinStringInterfaceSlice(append([]interface{}{jsonTag}, genericTableName...), seperator) //+ seperator
+			kind, ok := iState.depthKindMap[currentDepth]
+			if !ok {
+				// fmt.Println("CURRENT DEPTH BEFORE ERROR:", currentDepth)
+				iStateErr = NewError(nil, 2016)
+				return
+			}
+			valAsString := fmt.Sprintf("%v", reflect.ValueOf(val).Interface())
+			var convertedVal interface{}
+			convertedVal, iStateErr = convertToPrimitiveType(valAsString, kind)
+			if iStateErr != nil {
+				return
+			}
 			newRow := make(map[string]interface{})
 			newRow[docTypeField] = newGenericTableName
-			newRow[valueField] = reflect.ValueOf(val).Interface()
+			newRow[valueField] = convertedVal
 			newRow[keyRefField] = keyref
-			currentDepth := joinStringInterfaceSliceWithDotStar(append([]interface{}{jsonTag}, genericTableName...))
-			newRow[fieldNameField] = currentDepth
+			newRow[fieldNameField] = currentDepthStar
 			// fmt.Printf("4 ADVANCED COUNTER: CURRENT DEPTH KEY: %v, For Row: %v\n", currentDepth, newRow)
 			newTable = append(newTable, newRow)
 			addedGenericRow = true
 		}
 
 		newRow := make(map[string]interface{})
-		newRow[docTypeField] = tableName
-		newRow[valueField] = reflect.ValueOf(val).Interface()
-		newRow[keyRefField] = keyref
 		switch !isQuery {
 		case true && !addedGenericRow:
-			currentDepth := joinStringInterfaceSliceWithDotStar(append([]interface{}{jsonTag}, tableName[1:]...))
-			newRow[fieldNameField] = currentDepth
+			currentDepthStar = joinStringInterfaceSliceWithDotStar(append([]interface{}{jsonTag}, tableName[1:]...))
+			currentDepth = joinStringInterfaceSlice(append([]interface{}{jsonTag}, tableName[1:]...), seperator) //+ seperator
+			newRow[fieldNameField] = currentDepthStar
 			// fmt.Printf("5 ADVANCED COUNTER: CURRENT DEPTH KEY: %v, For Row: %v\n", currentDepth, newRow)
 		default:
-			currentDepth := joinStringInterfaceSliceWithDotStar(append([]interface{}{jsonTag}, genericTableName...))
-			newRow[fieldNameField] = currentDepth
+			currentDepthStar = joinStringInterfaceSliceWithDotStar(append([]interface{}{jsonTag}, genericTableName...))
+			currentDepth = joinStringInterfaceSlice(append([]interface{}{jsonTag}, genericTableName...), seperator) //+ seperator
+			newRow[fieldNameField] = currentDepthStar
 		}
+		kind, ok := iState.depthKindMap[currentDepth]
+		if !ok {
+			// fmt.Println("CURRENT DEPTH BEFORE ERROR:", currentDepth)
+			iStateErr = NewError(nil, 2016)
+			return
+		}
+		valAsString := fmt.Sprintf("%v", reflect.ValueOf(val).Interface())
+		var convertedVal interface{}
+		convertedVal, iStateErr = convertToPrimitiveType(valAsString, kind)
+		if iStateErr != nil {
+			return
+		}
+		newRow[docTypeField] = tableName
+		newRow[valueField] = convertedVal
+		newRow[keyRefField] = keyref
 		newTable = append(newTable, newRow)
 	}
 	return
@@ -198,22 +226,24 @@ func (iState *iState) getPrimaryKey(object interface{}) (key string) {
 }
 
 //
-func (iState *iState) encodeState(oMap map[string]interface{}, keyref string, flags ...bool) (encodedKeyValPairs map[string][]byte, docsCounter map[string]int, encKeyDocNameMap map[string]string, iStateErr Error) {
-	// flags[0]: keyRefSeparated index
-	// flags[1]: isQuery
+func (iState *iState) encodeState(oMap map[string]interface{}, keyref string, flags ...interface{}) (encodedKeyValPairs map[string][]byte, docsCounter map[string]int, encKeyDocNameMap map[string]string, iStateErr Error) {
+	// flags[0]: int -> 0: no separation, 1: keyRefSeparated index, 2: keyRef&ValueSeparated index (default: 0)
+	// flags[1]: isQuery (default: false)
 	iStateLogger.Debugf("Inside encodeState")
 	defer iStateLogger.Debugf("Exiting encodeState")
 	switch len(flags) {
 	case 0:
-		flags = []bool{false, false}
+		flags = []interface{}{0, false}
 	case 1:
-		flags = []bool{flags[0], false}
+		flags = []interface{}{flags[0], false}
 	}
+	separation := flags[0].(int)
+	isQuery := flags[1].(bool)
 	docsCounter = make(map[string]int)
 	encodedKeyValPairs = make(map[string][]byte)
 	encKeyDocNameMap = make(map[string]string)
 	// RQ-Index key - value
-	relationalTables, iStateErr := iState.generateRelationalTables(oMap, keyref, flags[1])
+	relationalTables, iStateErr := iState.generateRelationalTables(oMap, keyref, isQuery)
 	if iStateErr != nil {
 		return
 	}
@@ -237,11 +267,13 @@ func (iState *iState) encodeState(oMap map[string]interface{}, keyref string, fl
 					return
 				}
 
-				switch flags[0] {
-				case true:
-					encodedKey = joinStringInterfaceSlice(encodedKeyParts, seperator) + seperator + encodedVal + seperator
-				default:
+				switch separation {
+				case 0:
 					encodedKey = joinStringInterfaceSlice(encodedKeyParts, seperator) + seperator + encodedVal + seperator + null + keyref
+				case 1:
+					encodedKey = joinStringInterfaceSlice(encodedKeyParts, seperator) + seperator + encodedVal + seperator
+				case 2:
+					encodedKey = joinStringInterfaceSlice(encodedKeyParts, seperator) + seperator
 				}
 
 				switch _, ok := encodedKeyValPairs[encodedKey]; ok {
@@ -275,7 +307,9 @@ func encode(value interface{}) (encodedVal string, iStateErr Error) {
 			encodedVal = boolFalse
 		}
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		// fmt.Println("VAL RECEIVED AT ENCODE STATE:", value)
 		numString := fmt.Sprintf("%v", value)
+		// fmt.Println("numString", numString)
 		numEncodePrefix := ""
 		switch strings.HasPrefix(numString, "-") {
 		case true:
@@ -299,6 +333,7 @@ func encode(value interface{}) (encodedVal string, iStateErr Error) {
 		numEncodePrefix := positiveNum + numDigits[len(numString)]
 		encodedVal = numEncodePrefix + seperator + numString
 	case reflect.Float32, reflect.Float64:
+		// fmt.Println("ANY FLOATS?", value)
 		numString := fmt.Sprintf("%v", value)
 		numEncodePrefix := ""
 		switch strings.HasPrefix(numString, "-") {
@@ -316,6 +351,7 @@ func encode(value interface{}) (encodedVal string, iStateErr Error) {
 		numEncodePrefix += numDigits[len(wholeNum)]
 		encodedVal = numEncodePrefix + seperator + numString
 	case reflect.String:
+		// fmt.Println("Strings:", value)
 		encodedVal = value.(string)
 	default:
 		iStateErr = NewError(nil, 2005, kind)
@@ -790,6 +826,7 @@ func generateDepthKindMap(structRef interface{}, depthKindMap map[string]reflect
 	return
 }
 
+// Plural
 func removeLastSeparators(input string) (val string) {
 	val = input
 	endIndex := -1
@@ -834,4 +871,19 @@ func joinStringInterfaceSliceWithDotStar(slice []interface{}) (joinedString stri
 func initQueryEnv(qEnv *queryEnv) {
 	qEnv.ufetchedKVMap = make(map[string][]byte)
 	qEnv.ukeyEncKVMap = make(map[string]map[string][]byte)
+}
+
+// Singular
+func removeLastSeparator(key string) (outKey string) {
+	outKey = key
+	if len(key) != 0 {
+		// fmt.Println("Inside remove last separator", key)
+		// fmt.Println("key[len(key)-1]", key[len(key)-1])
+		// fmt.Println("seperator[0]", seperator[0])
+		// fmt.Println("Good?", key[len(key)-1] == seperator[0])
+		if key[len(key)-1] == seperator[0] { // separator[0] is '_' (not "_")
+			outKey = key[:len(key)-1]
+		}
+	}
+	return
 }

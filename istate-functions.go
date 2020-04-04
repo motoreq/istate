@@ -31,7 +31,7 @@ func NewiState(object interface{}) (iStateInterface Interface, iStateErr Error) 
 	defer iStateLogger.Infof("Exiting NewiState")
 
 	filledRef := fillZeroValue(object)
-	fmt.Printf("FILLEDREF: %v\n", filledRef)
+	// fmt.Printf("FILLEDREF: %v\n", filledRef)
 	// A map of JSON fieldname & it's position in the struct
 	fieldJSONIndexMap := make(map[string]int)
 	jsonFieldKindMap := make(map[string]reflect.Kind)
@@ -286,18 +286,73 @@ func (iState *iState) DeleteState(stub shim.ChaincodeStubInterface, primaryKey i
 	return nil
 }
 
-// // Need to Copy for every transaction
-// func (is *iState) CopyiState() (iStateInterface Interface) {
-// 	is.mux.Lock()
-// 	defer is.mux.Unlock()
-// 	iStateInterface = &iState{
-// 		structRef:         is.structRef,
-// 		fieldJSONIndexMap: is.fieldJSONIndexMap,
-// 		jsonFieldKindMap:  is.jsonFieldKindMap,
-// 		mapKeyKindMap:     is.mapKeyKindMap,
-// 		depthKindMap:      is.depthKindMap,
-// 		primaryIndex:      is.primaryIndex,
-// 		docsCounter:       is.docsCounter,
-// 	}
-// 	return
-// }
+//
+func (iState *iState) CompactIndex(stub shim.ChaincodeStubInterface) (iStateErr Error) {
+	iStateLogger.Infof("Inside CompactIndex")
+	defer iStateLogger.Infof("Exiting CompactIndex")
+
+	uObj, iStateErr := convertObjToMap(iState.structRef)
+	if iStateErr != nil {
+		return
+	}
+
+	keyRef := ""
+	encodedKV, _, _, iStateErr := iState.encodeState(uObj, keyRef, 2) // separate key & value = 2, query = false
+	if iStateErr != nil {
+		return
+	}
+
+	// fmt.Println("GENERATED DUMMY INDEXES:", encodedKV)
+
+	compactedIndexMap := make(map[string]compactIndexV) // compacted index
+
+	for index := range encodedKV {
+		startKey := index
+		endKey := index + asciiLast
+
+		var kvMap map[string][]byte // original index
+		kvMap, iStateErr = getKeyByRange(stub, startKey, endKey)
+		if iStateErr != nil {
+			return
+		}
+
+		alreadyFetched := make(map[string]struct{})
+		for origIndexK := range kvMap {
+			compactIndex, keyRef := generateCIndexKey(origIndexK)
+			if compactIndex == "" {
+				continue
+			}
+			var cIndexVal compactIndexV
+			switch val, ok := compactedIndexMap[compactIndex]; !ok {
+			case true:
+				if _, ok := alreadyFetched[compactIndex]; !ok {
+					cIndexVal, iStateErr = fetchCompactIndex(stub, compactIndex)
+					alreadyFetched[compactIndex] = struct{}{}
+				}
+			default:
+				cIndexVal = val
+			}
+			if len(cIndexVal) == 0 {
+				cIndexVal = make(compactIndexV)
+			}
+			cIndexVal[keyRef] = struct{}{}
+			compactedIndexMap[compactIndex] = cIndexVal
+
+			// Delete original index key
+			err := stub.DelState(origIndexK)
+			if err != nil {
+				iStateErr = NewError(err, 1016)
+				return
+			}
+		}
+
+	}
+
+	// fmt.Println("GENERATED COMPACT INDECES:", compactedIndexMap)
+	iStateErr = putCompactIndex(stub, compactedIndexMap)
+	if iStateErr != nil {
+		return
+	}
+
+	return
+}

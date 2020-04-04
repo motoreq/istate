@@ -3,8 +3,10 @@
 package istate
 
 import (
+	"fmt"
 	"github.com/hyperledger/fabric/core/chaincode/shim"
-	"strings"
+	"sync"
+	"time"
 )
 
 func (iState *iState) fetchEq(stub shim.ChaincodeStubInterface, encodedKey string, qEnv *queryEnv) (fetchedKVMap map[string][]byte, iStateErr Error) {
@@ -147,14 +149,35 @@ func (iState *iState) fetchScmplx(stub shim.ChaincodeStubInterface, encodedKey s
 	return
 }
 
-// TODO Cache startKey, endKey too
+// TODO Cache startKey, endKey too?
 func (iState *iState) getStateByRange(stub shim.ChaincodeStubInterface, startKey string, endKey string, qEnv *queryEnv) (fetchedKVMap map[string][]byte, iStateErr Error) {
+	start := time.Now()
+	fmt.Println("Before 4:", start)
 	fetchedKVMap = make(map[string][]byte)
+	// Compact Index
+	cIndexKey, _ := generateCIndexKey(removeLastSeparator(startKey))
+	cIndexV, iStateErr := fetchCompactIndex(stub, cIndexKey)
+	if iStateErr != nil {
+		return
+	}
+
+	for keyRef := range cIndexV {
+		iStateErr = loadFetchedKV(stub, fetchedKVMap, keyRef, qEnv)
+		if iStateErr != nil {
+			return
+		}
+	}
+	fmt.Println("After 4: ", time.Now().Sub(start))
+
+	start = time.Now()
+	fmt.Println("Before 5:", start)
+	// Normal Index
 	iterator, err := stub.GetStateByRange(startKey, endKey)
 	if err != nil {
 		iStateErr = NewError(err, 3006)
 		return
 	}
+
 	defer iterator.Close()
 	for i := 0; iterator.HasNext(); i++ {
 		iteratorResult, err := iterator.Next()
@@ -165,24 +188,36 @@ func (iState *iState) getStateByRange(stub shim.ChaincodeStubInterface, startKey
 		// keyRef := string(iteratorResult.GetValue())
 		indexkey := iteratorResult.GetKey()
 		keyRef := getKeyFromIndex(indexkey)
-		if _, ok := qEnv.ufetchedKVMap[keyRef]; ok {
-			if uValBytes, ok := fetchedKVMap[keyRef]; !ok {
-				fetchedKVMap[keyRef] = uValBytes
-			}
-			continue
+
+		iStateErr = loadFetchedKV(stub, fetchedKVMap, keyRef, qEnv)
+		if iStateErr != nil {
+			return
 		}
-		// Doesn't fetch if already fetched before
-		// Do Multi thread?
-		valBytes, err := stub.GetState(keyRef)
-		if err != nil {
-			iStateErr = NewError(err, 3008)
-		}
-		fetchedKVMap[keyRef] = nil
-		qEnv.ufetchedKVMap[keyRef] = valBytes
 	}
+	fmt.Println("After 5: ", time.Now().Sub(start))
 	return
 }
 
-func getKeyFromIndex(indexkey string) (keyRef string) {
-	return indexkey[strings.LastIndex(indexkey, null)+1:]
+func loadFetchedKV(stub shim.ChaincodeStubInterface, fetchedKVMap map[string][]byte, keyRef string, qEnv *queryEnv) (iStateErr Error) {
+	var wg sync.WaitGroup
+	if _, ok := qEnv.ufetchedKVMap[keyRef]; ok {
+		if uValBytes, ok := fetchedKVMap[keyRef]; !ok {
+			fetchedKVMap[keyRef] = uValBytes
+		}
+		return
+	}
+	wg.Add(1)
+	go func() {
+		// Doesn't fetch if already fetched before
+		valBytes, err := stub.GetState(keyRef)
+		if err != nil {
+			iStateErr = NewError(err, 3008)
+			return
+		}
+		fetchedKVMap[keyRef] = valBytes
+		qEnv.ufetchedKVMap[keyRef] = valBytes
+		wg.Done()
+	}()
+	wg.Wait()
+	return
 }

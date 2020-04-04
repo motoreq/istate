@@ -5,11 +5,13 @@ package istate
 import (
 	"encoding/json"
 	// "fmt"
+	"fmt"
 	"github.com/emirpasic/gods/trees/btree"
 	"github.com/hyperledger/fabric/core/chaincode/shim"
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // Syntax and Keywords
@@ -112,6 +114,7 @@ func (iState *iState) Query(stub shim.ChaincodeStubInterface, queryString string
 		return
 	}
 
+	start := time.Now()
 	// fmt.Println(uQuery)
 	filteredKeys := make([]map[string]map[string][]byte, len(uQuery), len(uQuery))
 	for i := 0; i < len(uQuery); i++ {
@@ -120,6 +123,7 @@ func (iState *iState) Query(stub shim.ChaincodeStubInterface, queryString string
 			return
 		}
 	}
+	fmt.Println("After all parseAndEvalSingle: ", time.Now().Sub(start))
 
 	// Or operation over results
 	combinedResults := orOperation(filteredKeys...)
@@ -142,7 +146,7 @@ func (iState *iState) Query(stub shim.ChaincodeStubInterface, queryString string
 }
 
 func (iState *iState) parseAndEvalSingle(stub shim.ChaincodeStubInterface, uQuery map[string]interface{}, qEnv *queryEnv) (filteredKeys map[string]map[string][]byte, iStateErr Error) {
-
+	start := time.Now()
 	// Fields will be declared automatically and make not needed
 	querySet := querys{
 		// eq:   []map[string]interface{},
@@ -239,14 +243,21 @@ func (iState *iState) parseAndEvalSingle(stub shim.ChaincodeStubInterface, uQuer
 	var fetchFunc func(shim.ChaincodeStubInterface, string, *queryEnv) (map[string][]byte, Error)
 	var queryEncodedKVset encodedKVs
 
+	start = time.Now()
+	fmt.Println("Before getBestEncodedKeyFunc", start)
 	bestKey, fetchFunc, queryEncodedKVset, iStateErr = iState.getBestEncodedKeyFunc(querySet)
 	if iStateErr != nil {
 		return
 	}
+	fmt.Println("After: ", time.Now().Sub(start))
+
+	// fmt.Println("BEST KEY: ", bestKey)
 
 	var fetchedKVMap map[string][]byte
 	fetchedKVMap, iStateErr = fetchFunc(stub, bestKey, qEnv)
 	keyEncKVMap := make(map[string]map[string][]byte)
+	start = time.Now()
+	fmt.Println("Before 2:", start)
 	for key := range fetchedKVMap {
 		switch encodedKV, ok := qEnv.ukeyEncKVMap[key]; ok {
 		case true:
@@ -258,7 +269,7 @@ func (iState *iState) parseAndEvalSingle(stub shim.ChaincodeStubInterface, uQuer
 				iStateErr = NewError(err, 3019)
 				return
 			}
-			encodedKV, _, _, iStateErr = iState.encodeState(tempVar, key, true) // keyRefSeperatedIndex = true, query = false
+			encodedKV, _, _, iStateErr = iState.encodeState(tempVar, key, 1) // keyRefSeperatedIndex = 1, query = false
 			if iStateErr != nil {
 				return
 			}
@@ -266,8 +277,12 @@ func (iState *iState) parseAndEvalSingle(stub shim.ChaincodeStubInterface, uQuer
 		}
 
 	}
+	fmt.Println("After 2: ", time.Now().Sub(start))
 
+	start = time.Now()
+	fmt.Println("Before 3:", start)
 	evalAndFilterEq(stub, queryEncodedKVset.eq, keyEncKVMap)
+	fmt.Println("After 3: ", time.Now().Sub(start))
 
 	//resultEq, iStateErr = iState.evaluateEq(stub, eqQuery)
 	// iState.evaluateNeq(stub, neqQuery)
@@ -376,6 +391,15 @@ func convertToPrimitiveType(toConvert string, kind reflect.Kind) (convertedVal i
 		}
 	case reflect.Int:
 		// fmt.Println("Atoi: Trying to Convert:", toConvert)
+		// If trying to convert float to int
+		if strings.Contains(toConvert, "e") {
+			floatVal, err := strconv.ParseFloat(toConvert, 64)
+			if err != nil {
+				iStateErr = NewError(err, 3014)
+				return
+			}
+			toConvert = fmt.Sprintf("%.0f", floatVal)
+		}
 		convertedVal, err = strconv.Atoi(toConvert)
 		if err != nil {
 			iStateErr = NewError(err, 3011)
@@ -580,7 +604,7 @@ func (iState *iState) generateEncKeysAndAddToTree(query []map[string]interface{}
 	for i := 0; i < len(query); i++ {
 		var encKeyDocNameMap map[string]string
 		var encodedKeyVal map[string][]byte
-		encodedKeyVal, _, encKeyDocNameMap, iStateErr = iState.encodeState(query[i], keyref, true)
+		encodedKeyVal, _, encKeyDocNameMap, iStateErr = iState.encodeState(query[i], keyref, 1, true) // separation: 1, isQuery: true
 		if iStateErr != nil {
 			return
 		}
