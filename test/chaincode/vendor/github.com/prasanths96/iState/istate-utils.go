@@ -10,8 +10,8 @@ import (
 
 // "." is restricted eg: .docType
 func (iState *iState) generateRelationalTables(obj map[string]interface{}, keyref string, isQuery bool) (relationalTables [][]map[string]interface{}, iStateErr Error) {
-	iStateLogger.Debugf("Inside generateRelationalTables")
-	defer iStateLogger.Debugf("Exiting generateRelationalTables")
+	// iStateLogger.Debugf("Inside generateRelationalTables")
+	// defer iStateLogger.Debugf("Exiting generateRelationalTables")
 
 	for index, val := range obj {
 		var newTable []map[string]interface{}
@@ -38,8 +38,8 @@ func (iState *iState) generateRelationalTables(obj map[string]interface{}, keyre
 
 //
 func (iState *iState) traverseAndGenerateRelationalTable(val interface{}, tableName []interface{}, jsonTag string, iStateTag string, keyref string, isQuery bool, meta ...interface{}) (newTable []map[string]interface{}, iStateErr Error) {
-	iStateLogger.Debugf("Inside traverseAndGenerateRelationalTable")
-	defer iStateLogger.Debugf("Exiting traverseAndGenerateRelationalTable")
+	// iStateLogger.Debugf("Inside traverseAndGenerateRelationalTable")
+	// defer iStateLogger.Debugf("Exiting traverseAndGenerateRelationalTable")
 	// meta[0] Universal depth
 	// meta[1] appended with "_" (Previous key)
 	genericTableName := []interface{}{}
@@ -171,6 +171,7 @@ func (iState *iState) traverseAndGenerateRelationalTable(val interface{}, tableN
 			var convertedVal interface{}
 			convertedVal, iStateErr = convertToPrimitiveType(valAsString, kind)
 			if iStateErr != nil {
+				// fmt.Println("ERROR IS FROM 1")
 				return
 			}
 			newRow := make(map[string]interface{})
@@ -186,30 +187,40 @@ func (iState *iState) traverseAndGenerateRelationalTable(val interface{}, tableN
 		newRow := make(map[string]interface{})
 		switch !isQuery {
 		case true && !addedGenericRow:
+
 			currentDepthStar = joinStringInterfaceSliceWithDotStar(append([]interface{}{jsonTag}, tableName[1:]...))
 			currentDepth = joinStringInterfaceSlice(append([]interface{}{jsonTag}, tableName[1:]...), seperator) //+ seperator
+			// fmt.Println("NO QUERY", currentDepth)
 			newRow[fieldNameField] = currentDepthStar
+
+			kind, ok := iState.depthKindMap[currentDepth]
+			if !ok {
+				// fmt.Println("CURRENT DEPTH BEFORE ERROR:", currentDepth)
+				iStateErr = NewError(nil, 2016)
+				return
+			}
+			valAsString := fmt.Sprintf("%v", reflect.ValueOf(val).Interface())
+			var convertedVal interface{}
+			convertedVal, iStateErr = convertToPrimitiveType(valAsString, kind)
+			if iStateErr != nil {
+				// fmt.Println("ERROR IS FROM 2")
+				return
+			}
+			newRow[docTypeField] = tableName
+			newRow[valueField] = convertedVal
+			newRow[keyRefField] = keyref
 			// fmt.Printf("5 ADVANCED COUNTER: CURRENT DEPTH KEY: %v, For Row: %v\n", currentDepth, newRow)
 		default:
+
 			currentDepthStar = joinStringInterfaceSliceWithDotStar(append([]interface{}{jsonTag}, genericTableName...))
 			currentDepth = joinStringInterfaceSlice(append([]interface{}{jsonTag}, genericTableName...), seperator) //+ seperator
+			// fmt.Println("YES QUERY", currentDepth)
 			newRow[fieldNameField] = currentDepthStar
+			newRow[docTypeField] = tableName
+			newRow[valueField] = reflect.ValueOf(val).Interface()
+			newRow[keyRefField] = keyref
 		}
-		kind, ok := iState.depthKindMap[currentDepth]
-		if !ok {
-			// fmt.Println("CURRENT DEPTH BEFORE ERROR:", currentDepth)
-			iStateErr = NewError(nil, 2016)
-			return
-		}
-		valAsString := fmt.Sprintf("%v", reflect.ValueOf(val).Interface())
-		var convertedVal interface{}
-		convertedVal, iStateErr = convertToPrimitiveType(valAsString, kind)
-		if iStateErr != nil {
-			return
-		}
-		newRow[docTypeField] = tableName
-		newRow[valueField] = convertedVal
-		newRow[keyRefField] = keyref
+
 		newTable = append(newTable, newRow)
 	}
 	return
@@ -217,8 +228,8 @@ func (iState *iState) traverseAndGenerateRelationalTable(val interface{}, tableN
 
 //
 func (iState *iState) getPrimaryKey(object interface{}) (key string) {
-	iStateLogger.Debugf("Inside getPrimaryKey")
-	defer iStateLogger.Debugf("Exiting getPrimaryKey")
+	// iStateLogger.Debugf("Inside getPrimaryKey")
+	// defer iStateLogger.Debugf("Exiting getPrimaryKey")
 
 	reflectVal := reflect.ValueOf(object)
 	key = fmt.Sprintf("%v", reflectVal.Field(iState.primaryIndex).Interface())
@@ -229,8 +240,8 @@ func (iState *iState) getPrimaryKey(object interface{}) (key string) {
 func (iState *iState) encodeState(oMap map[string]interface{}, keyref string, flags ...interface{}) (encodedKeyValPairs map[string][]byte, docsCounter map[string]int, encKeyDocNameMap map[string]string, iStateErr Error) {
 	// flags[0]: int -> 0: no separation, 1: keyRefSeparated index, 2: keyRef&ValueSeparated index (default: 0)
 	// flags[1]: isQuery (default: false)
-	iStateLogger.Debugf("Inside encodeState")
-	defer iStateLogger.Debugf("Exiting encodeState")
+	// iStateLogger.Debugf("Inside encodeState")
+	// defer iStateLogger.Debugf("Exiting encodeState")
 	switch len(flags) {
 	case 0:
 		flags = []interface{}{0, false}
@@ -697,8 +708,8 @@ func generateFieldJSONIndexMap(structRef interface{}, fieldJSONIndexMap map[stri
 
 //
 func getPrimaryFieldIndex(object interface{}) (outi int, iStateErr Error) {
-	iStateLogger.Debugf("Inside getPrimaryFieldIndex")
-	defer iStateLogger.Debugf("Exiting getPrimaryFieldIndex")
+	// iStateLogger.Debugf("Inside getPrimaryFieldIndex")
+	// defer iStateLogger.Debugf("Exiting getPrimaryFieldIndex")
 	outi = -1
 	reflectVal := reflect.ValueOf(object)
 	for i := 0; i < reflectVal.NumField(); i++ {

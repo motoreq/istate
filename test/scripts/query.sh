@@ -8,7 +8,7 @@ function main() {
         ran1=$1
 
 
-        res=$(curl -sd '{"func":"QueryState","args": {"queryString":"[{\"anInt\":\"eq 100\"}]"},"user":"admin"}' -H "Content-Type: application/json" -X POST http://$host:$port/api/query)
+        res=$(curl -sd '{"func":"QueryState","args": {"queryString":"[{\"docType\":\"eq bleh\"}]"},"user":"admin"}' -H "Content-Type: application/json" -X POST http://$host:$port/api/query)
         # {"func":"QueryState","args": {"queryString":"[{\"anInt\":\"eq 1000\"}]"},"user":"admin"}
 
         echo $res

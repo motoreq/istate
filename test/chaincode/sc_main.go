@@ -23,13 +23,34 @@ func (sc *TestSmartContract) Init(stub shim.ChaincodeStubInterface) pb.Response 
 	return shim.Success(nil)
 }
 
+func (sc *TestSmartContract) init() error {
+	TestStructiState, err := istate.NewiState(TestStruct{})
+	if err != nil {
+		return err
+	}
+	sc.TestStructiState = TestStructiState
+	return nil
+}
+
 //Invoke is the entry point for any transaction
 func (sc *TestSmartContract) Invoke(stub shim.ChaincodeStubInterface) pb.Response {
+	if sc.TestStructiState == nil {
+		err := sc.init()
+		if err != nil {
+			return shim.Error(err.Error())
+		}
+	}
 	return sc.handleFunctions(stub)
 }
 
 //Query is the entry point for any data retrival
 func (sc *TestSmartContract) Query(stub shim.ChaincodeStubInterface) pb.Response {
+	if sc.TestStructiState == nil {
+		err := sc.init()
+		if err != nil {
+			return shim.Error(err.Error())
+		}
+	}
 	return sc.handleFunctions(stub)
 }
 
@@ -62,6 +83,7 @@ func main() {
 	if err != nil {
 		fmt.Printf("Error starting  chaincode: %v\n", err)
 	}
+
 }
 
 // ====================================================================================
@@ -203,6 +225,7 @@ func (sc *TestSmartContract) QueryState(stub shim.ChaincodeStubInterface) pb.Res
 	if err != nil {
 		return shim.Error(err.Error())
 	}
+	// _ = mr
 	return shim.Success(mr)
 
 }

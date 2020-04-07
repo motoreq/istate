@@ -1,0 +1,1 @@
+pm2 start compact.sh --no-autorestart --name compaction -- 100 

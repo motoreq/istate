@@ -23,6 +23,8 @@ const (
 
 	seperator = "_"
 	null      = "\000"
+
+	int32Biggest = 2147483647
 )
 
 var nullByte = []byte{0x01}

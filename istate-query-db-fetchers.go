@@ -5,9 +5,11 @@ package istate
 import (
 	"fmt"
 	"github.com/hyperledger/fabric/core/chaincode/shim"
-	"sync"
+	"runtime"
 	"time"
 )
+
+var GOMAXPROCS = runtime.GOMAXPROCS(1)
 
 func (iState *iState) fetchEq(stub shim.ChaincodeStubInterface, encodedKey string, qEnv *queryEnv) (fetchedKVMap map[string][]byte, iStateErr Error) {
 	start := encodedKey
@@ -151,6 +153,53 @@ func (iState *iState) fetchScmplx(stub shim.ChaincodeStubInterface, encodedKey s
 
 // TODO Cache startKey, endKey too?
 func (iState *iState) getStateByRange(stub shim.ChaincodeStubInterface, startKey string, endKey string, qEnv *queryEnv) (fetchedKVMap map[string][]byte, iStateErr Error) {
+	fetchedKVMap = make(map[string][]byte)
+	// Compact Index
+	start := time.Now()
+	cIndexKey, _ := generateCIndexKey(removeLastSeparator(startKey))
+	cIndexV, iStateErr := fetchCompactIndex(stub, cIndexKey)
+	if iStateErr != nil {
+		return
+	}
+	fmt.Println("Fetched Compacted Index in: ", time.Now().Sub(start))
+	start = time.Now()
+	for keyRef := range cIndexV {
+		iStateErr = loadFetchedKV(stub, fetchedKVMap, keyRef, qEnv)
+		if iStateErr != nil {
+			return
+		}
+	}
+
+	fmt.Println("Loaded Compacted Index in: ", time.Now().Sub(start))
+
+	// Normal Index
+	start = time.Now()
+	iterator, err := stub.GetStateByRange(startKey, endKey)
+	if err != nil {
+		iStateErr = NewError(err, 3006)
+		return
+	}
+
+	defer iterator.Close()
+	for i := 0; iterator.HasNext(); i++ {
+		iteratorResult, err := iterator.Next()
+		if err != nil {
+			iStateErr = NewError(err, 3007)
+			return
+		}
+		// keyRef := string(iteratorResult.GetValue())
+		indexkey := iteratorResult.GetKey()
+		keyRef := getKeyFromIndex(indexkey)
+
+		iStateErr = loadFetchedKV(stub, fetchedKVMap, keyRef, qEnv)
+		if iStateErr != nil {
+			return
+		}
+	}
+	fmt.Println("Fetched Normal Index in: ", time.Now().Sub(start))
+	return
+}
+func (iState *iState) getStateByRangeWithPagination(stub shim.ChaincodeStubInterface, startKey string, endKey string, qEnv *queryEnv, pageSize int32, bookmark string) (fetchedKVMap map[string][]byte, iStateErr Error) {
 	start := time.Now()
 	fmt.Println("Before 4:", start)
 	fetchedKVMap = make(map[string][]byte)
@@ -172,7 +221,7 @@ func (iState *iState) getStateByRange(stub shim.ChaincodeStubInterface, startKey
 	start = time.Now()
 	fmt.Println("Before 5:", start)
 	// Normal Index
-	iterator, err := stub.GetStateByRange(startKey, endKey)
+	iterator, _, err := stub.GetStateByRangeWithPagination(startKey, endKey, pageSize, bookmark)
 	if err != nil {
 		iStateErr = NewError(err, 3006)
 		return
@@ -199,25 +248,46 @@ func (iState *iState) getStateByRange(stub shim.ChaincodeStubInterface, startKey
 }
 
 func loadFetchedKV(stub shim.ChaincodeStubInterface, fetchedKVMap map[string][]byte, keyRef string, qEnv *queryEnv) (iStateErr Error) {
-	var wg sync.WaitGroup
 	if _, ok := qEnv.ufetchedKVMap[keyRef]; ok {
 		if uValBytes, ok := fetchedKVMap[keyRef]; !ok {
 			fetchedKVMap[keyRef] = uValBytes
 		}
 		return
 	}
-	wg.Add(1)
-	go func() {
-		// Doesn't fetch if already fetched before
-		valBytes, err := stub.GetState(keyRef)
-		if err != nil {
-			iStateErr = NewError(err, 3008)
-			return
-		}
+	// Doesn't fetch if already fetched before
+	// valBytes, err := ConcurrentGetState(stub, keyRef)
+	valBytes, err := stub.GetState(keyRef)
+	if err != nil {
+		iStateErr = NewError(err, 3008)
+		return
+	}
+	if valBytes != nil {
 		fetchedKVMap[keyRef] = valBytes
 		qEnv.ufetchedKVMap[keyRef] = valBytes
-		wg.Done()
-	}()
-	wg.Wait()
+	}
+	return
+}
+
+func ConcurrentGetState(stub shim.ChaincodeStubInterface, key string) (valBytes []byte, err error) {
+	if key == "" {
+		return
+	}
+	fmt.Println("God.. It's fetching from ConcurrentGetState(): Key: ", key)
+	startKey := key
+	modifiedLastChar := string((key[len(key)-1] + 1))
+	endKey := key[:len(key)-1] + modifiedLastChar
+	iterator, err := stub.GetStateByRange(startKey, endKey)
+	if err != nil {
+		return
+	}
+	defer iterator.Close()
+	for iterator.HasNext() {
+		iteratorResult, nerr := iterator.Next()
+		if nerr != nil {
+			return nil, nerr
+		}
+		valBytes = iteratorResult.GetValue()
+		break
+	}
 	return
 }

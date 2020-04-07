@@ -23,6 +23,9 @@ type iState struct {
 	//
 	kvCache       *kvCache
 	keyEncKVCache *keyEncKVCache
+	queryEnv      *queryEnv
+
+	CompactionSize int
 }
 
 // NewiState function is used to
@@ -66,6 +69,7 @@ func NewiState(object interface{}) (iStateInterface Interface, iStateErr Error) 
 		docsCounter:       docsCounter,
 		kvCache:           &kvCache{kvCache: make(map[string][]byte)},
 		keyEncKVCache:     &keyEncKVCache{keyEncKVCache: make(map[string]map[string][]byte)},
+		CompactionSize:    10000,
 	}
 	fmt.Println("JSON FIELD KIND MAP", jsonFieldKindMap)
 	fmt.Println("MAP KEY KIND MAP", mapKeyKindMap)
@@ -311,10 +315,11 @@ func (iState *iState) CompactIndex(stub shim.ChaincodeStubInterface) (iStateErr 
 		endKey := index + asciiLast
 
 		var kvMap map[string][]byte // original index
-		kvMap, iStateErr = getKeyByRange(stub, startKey, endKey)
+		kvMap, iStateErr = getKeyByRange(stub, startKey, endKey, iState.CompactionSize)
 		if iStateErr != nil {
 			return
 		}
+		fmt.Println("Length of kvMap:", len(kvMap))
 
 		alreadyFetched := make(map[string]struct{})
 		for origIndexK := range kvMap {
@@ -323,11 +328,13 @@ func (iState *iState) CompactIndex(stub shim.ChaincodeStubInterface) (iStateErr 
 				continue
 			}
 			var cIndexVal compactIndexV
+			var oldCIndexVal compactIndexV
 			switch val, ok := compactedIndexMap[compactIndex]; !ok {
 			case true:
 				if _, ok := alreadyFetched[compactIndex]; !ok {
 					cIndexVal, iStateErr = fetchCompactIndex(stub, compactIndex)
 					alreadyFetched[compactIndex] = struct{}{}
+					oldCIndexVal = cIndexVal
 				}
 			default:
 				cIndexVal = val
@@ -336,13 +343,14 @@ func (iState *iState) CompactIndex(stub shim.ChaincodeStubInterface) (iStateErr 
 				cIndexVal = make(compactIndexV)
 			}
 			cIndexVal[keyRef] = struct{}{}
-			compactedIndexMap[compactIndex] = cIndexVal
-
-			// Delete original index key
-			err := stub.DelState(origIndexK)
-			if err != nil {
-				iStateErr = NewError(err, 1016)
-				return
+			if !reflect.DeepEqual(oldCIndexVal, cIndexVal) {
+				compactedIndexMap[compactIndex] = cIndexVal
+				// Delete original index key
+				err := stub.DelState(origIndexK)
+				if err != nil {
+					iStateErr = NewError(err, 1016)
+					return
+				}
 			}
 		}
 

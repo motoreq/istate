@@ -104,8 +104,13 @@ func (iState *iState) Query(stub shim.ChaincodeStubInterface, queryString string
 	iStateLogger.Infof("Inside Query")
 	defer iStateLogger.Infof("Exiting Query")
 
-	qEnv := &queryEnv{}
-	initQueryEnv(qEnv)
+	var qEnv *queryEnv
+	if iState.queryEnv != nil {
+		qEnv = iState.queryEnv
+	} else {
+		qEnv = &queryEnv{}
+		initQueryEnv(qEnv)
+	}
 
 	var uQuery []map[string]interface{}
 	err := json.Unmarshal([]byte(queryString), &uQuery)
@@ -123,10 +128,11 @@ func (iState *iState) Query(stub shim.ChaincodeStubInterface, queryString string
 			return
 		}
 	}
-	fmt.Println("After all parseAndEvalSingle: ", time.Now().Sub(start))
-
+	fmt.Println("After Parse and Eval: ", time.Now().Sub(start))
 	// Or operation over results
 	combinedResults := orOperation(filteredKeys...)
+
+	start = time.Now()
 
 	finalResult = reflect.MakeSlice(reflect.SliceOf(reflect.TypeOf(iState.structRef)), len(combinedResults), len(combinedResults))
 	i := 0
@@ -140,13 +146,14 @@ func (iState *iState) Query(stub shim.ChaincodeStubInterface, queryString string
 		finalResult.(reflect.Value).Index(i).Set(reflect.ValueOf(singleElem).Elem())
 		i++
 	}
+	fmt.Println("After Unmarshal & make: ", time.Now().Sub(start))
 
 	finalResult = finalResult.(reflect.Value).Interface()
 	return
 }
 
 func (iState *iState) parseAndEvalSingle(stub shim.ChaincodeStubInterface, uQuery map[string]interface{}, qEnv *queryEnv) (filteredKeys map[string]map[string][]byte, iStateErr Error) {
-	start := time.Now()
+
 	// Fields will be declared automatically and make not needed
 	querySet := querys{
 		// eq:   []map[string]interface{},
@@ -243,21 +250,16 @@ func (iState *iState) parseAndEvalSingle(stub shim.ChaincodeStubInterface, uQuer
 	var fetchFunc func(shim.ChaincodeStubInterface, string, *queryEnv) (map[string][]byte, Error)
 	var queryEncodedKVset encodedKVs
 
-	start = time.Now()
-	fmt.Println("Before getBestEncodedKeyFunc", start)
 	bestKey, fetchFunc, queryEncodedKVset, iStateErr = iState.getBestEncodedKeyFunc(querySet)
 	if iStateErr != nil {
 		return
 	}
-	fmt.Println("After: ", time.Now().Sub(start))
 
 	// fmt.Println("BEST KEY: ", bestKey)
 
 	var fetchedKVMap map[string][]byte
 	fetchedKVMap, iStateErr = fetchFunc(stub, bestKey, qEnv)
 	keyEncKVMap := make(map[string]map[string][]byte)
-	start = time.Now()
-	fmt.Println("Before 2:", start)
 	for key := range fetchedKVMap {
 		switch encodedKV, ok := qEnv.ukeyEncKVMap[key]; ok {
 		case true:
@@ -274,15 +276,12 @@ func (iState *iState) parseAndEvalSingle(stub shim.ChaincodeStubInterface, uQuer
 				return
 			}
 			keyEncKVMap[key] = encodedKV
+			qEnv.ukeyEncKVMap[key] = encodedKV
 		}
 
 	}
-	fmt.Println("After 2: ", time.Now().Sub(start))
 
-	start = time.Now()
-	fmt.Println("Before 3:", start)
 	evalAndFilterEq(stub, queryEncodedKVset.eq, keyEncKVMap)
-	fmt.Println("After 3: ", time.Now().Sub(start))
 
 	//resultEq, iStateErr = iState.evaluateEq(stub, eqQuery)
 	// iState.evaluateNeq(stub, neqQuery)
@@ -303,6 +302,7 @@ func (iState *iState) parseAndEvalSingle(stub shim.ChaincodeStubInterface, uQuer
 	// and operation between fields
 
 	filteredKeys = keyEncKVMap
+	iState.queryEnv = qEnv
 	return
 }
 
