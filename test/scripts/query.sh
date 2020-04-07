@@ -1,14 +1,14 @@
 #host="52.14.31.90"
 host="localhost"
 port="5000"
-perWorker=10
+perWorker=100
 
 function main() {
 
         ran1=$1
 
 
-        res=$(curl -sd '{"func":"QueryState","args": {"queryString":"[{\"anInt\":\"eq 1000\"}]"},"user":"admin"}' -H "Content-Type: application/json" -X POST http://$host:$port/api/query)
+        res=$(curl -sd '{"func":"QueryState","args": {"queryString":"[{\"docType\":\"eq bleh\"}]"},"user":"admin"}' -H "Content-Type: application/json" -X POST http://$host:$port/api/query)
         # {"func":"QueryState","args": {"queryString":"[{\"anInt\":\"eq 1000\"}]"},"user":"admin"}
 
         echo $res

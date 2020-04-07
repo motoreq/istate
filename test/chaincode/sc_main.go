@@ -23,13 +23,34 @@ func (sc *TestSmartContract) Init(stub shim.ChaincodeStubInterface) pb.Response 
 	return shim.Success(nil)
 }
 
+func (sc *TestSmartContract) init() error {
+	TestStructiState, err := istate.NewiState(TestStruct{})
+	if err != nil {
+		return err
+	}
+	sc.TestStructiState = TestStructiState
+	return nil
+}
+
 //Invoke is the entry point for any transaction
 func (sc *TestSmartContract) Invoke(stub shim.ChaincodeStubInterface) pb.Response {
+	if sc.TestStructiState == nil {
+		err := sc.init()
+		if err != nil {
+			return shim.Error(err.Error())
+		}
+	}
 	return sc.handleFunctions(stub)
 }
 
 //Query is the entry point for any data retrival
 func (sc *TestSmartContract) Query(stub shim.ChaincodeStubInterface) pb.Response {
+	if sc.TestStructiState == nil {
+		err := sc.init()
+		if err != nil {
+			return shim.Error(err.Error())
+		}
+	}
 	return sc.handleFunctions(stub)
 }
 
@@ -49,6 +70,8 @@ func (sc *TestSmartContract) handleFunctions(stub shim.ChaincodeStubInterface) p
 		return sc.DeleteState(stub)
 	case "QueryState":
 		return sc.QueryState(stub)
+	case "CompactIndex":
+		return sc.CompactIndex(stub)
 	}
 
 	return shim.Error(fmt.Sprintf("Invalid function provided: %v", function))
@@ -60,6 +83,7 @@ func main() {
 	if err != nil {
 		fmt.Printf("Error starting  chaincode: %v\n", err)
 	}
+
 }
 
 // ====================================================================================
@@ -201,6 +225,17 @@ func (sc *TestSmartContract) QueryState(stub shim.ChaincodeStubInterface) pb.Res
 	if err != nil {
 		return shim.Error(err.Error())
 	}
+	// _ = mr
 	return shim.Success(mr)
 
+}
+
+//
+func (sc *TestSmartContract) CompactIndex(stub shim.ChaincodeStubInterface) pb.Response {
+	var err error
+	err = sc.TestStructiState.CompactIndex(stub)
+	if err != nil {
+		return shim.Error(err.Error())
+	}
+	return shim.Success([]byte("Success"))
 }

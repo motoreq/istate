@@ -5,11 +5,13 @@ package istate
 import (
 	"encoding/json"
 	// "fmt"
+	"fmt"
 	"github.com/emirpasic/gods/trees/btree"
 	"github.com/hyperledger/fabric/core/chaincode/shim"
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // Syntax and Keywords
@@ -102,8 +104,13 @@ func (iState *iState) Query(stub shim.ChaincodeStubInterface, queryString string
 	iStateLogger.Infof("Inside Query")
 	defer iStateLogger.Infof("Exiting Query")
 
-	qEnv := &queryEnv{}
-	initQueryEnv(qEnv)
+	var qEnv *queryEnv
+	if iState.queryEnv != nil {
+		qEnv = iState.queryEnv
+	} else {
+		qEnv = &queryEnv{}
+		initQueryEnv(qEnv)
+	}
 
 	var uQuery []map[string]interface{}
 	err := json.Unmarshal([]byte(queryString), &uQuery)
@@ -112,6 +119,7 @@ func (iState *iState) Query(stub shim.ChaincodeStubInterface, queryString string
 		return
 	}
 
+	start := time.Now()
 	// fmt.Println(uQuery)
 	filteredKeys := make([]map[string]map[string][]byte, len(uQuery), len(uQuery))
 	for i := 0; i < len(uQuery); i++ {
@@ -120,9 +128,11 @@ func (iState *iState) Query(stub shim.ChaincodeStubInterface, queryString string
 			return
 		}
 	}
-
+	fmt.Println("After Parse and Eval: ", time.Now().Sub(start))
 	// Or operation over results
 	combinedResults := orOperation(filteredKeys...)
+
+	start = time.Now()
 
 	finalResult = reflect.MakeSlice(reflect.SliceOf(reflect.TypeOf(iState.structRef)), len(combinedResults), len(combinedResults))
 	i := 0
@@ -136,6 +146,7 @@ func (iState *iState) Query(stub shim.ChaincodeStubInterface, queryString string
 		finalResult.(reflect.Value).Index(i).Set(reflect.ValueOf(singleElem).Elem())
 		i++
 	}
+	fmt.Println("After Unmarshal & make: ", time.Now().Sub(start))
 
 	finalResult = finalResult.(reflect.Value).Interface()
 	return
@@ -244,6 +255,8 @@ func (iState *iState) parseAndEvalSingle(stub shim.ChaincodeStubInterface, uQuer
 		return
 	}
 
+	// fmt.Println("BEST KEY: ", bestKey)
+
 	var fetchedKVMap map[string][]byte
 	fetchedKVMap, iStateErr = fetchFunc(stub, bestKey, qEnv)
 	keyEncKVMap := make(map[string]map[string][]byte)
@@ -258,11 +271,12 @@ func (iState *iState) parseAndEvalSingle(stub shim.ChaincodeStubInterface, uQuer
 				iStateErr = NewError(err, 3019)
 				return
 			}
-			encodedKV, _, _, iStateErr = iState.encodeState(tempVar, key, true) // keyRefSeperatedIndex = true, query = false
+			encodedKV, _, _, iStateErr = iState.encodeState(tempVar, key, 1) // keyRefSeperatedIndex = 1, query = false
 			if iStateErr != nil {
 				return
 			}
 			keyEncKVMap[key] = encodedKV
+			qEnv.ukeyEncKVMap[key] = encodedKV
 		}
 
 	}
@@ -288,6 +302,7 @@ func (iState *iState) parseAndEvalSingle(stub shim.ChaincodeStubInterface, uQuer
 	// and operation between fields
 
 	filteredKeys = keyEncKVMap
+	iState.queryEnv = qEnv
 	return
 }
 
@@ -376,6 +391,15 @@ func convertToPrimitiveType(toConvert string, kind reflect.Kind) (convertedVal i
 		}
 	case reflect.Int:
 		// fmt.Println("Atoi: Trying to Convert:", toConvert)
+		// If trying to convert float to int
+		if strings.Contains(toConvert, "e") {
+			floatVal, err := strconv.ParseFloat(toConvert, 64)
+			if err != nil {
+				iStateErr = NewError(err, 3014)
+				return
+			}
+			toConvert = fmt.Sprintf("%.0f", floatVal)
+		}
 		convertedVal, err = strconv.Atoi(toConvert)
 		if err != nil {
 			iStateErr = NewError(err, 3011)
@@ -580,7 +604,7 @@ func (iState *iState) generateEncKeysAndAddToTree(query []map[string]interface{}
 	for i := 0; i < len(query); i++ {
 		var encKeyDocNameMap map[string]string
 		var encodedKeyVal map[string][]byte
-		encodedKeyVal, _, encKeyDocNameMap, iStateErr = iState.encodeState(query[i], keyref, true)
+		encodedKeyVal, _, encKeyDocNameMap, iStateErr = iState.encodeState(query[i], keyref, 1, true) // separation: 1, isQuery: true
 		if iStateErr != nil {
 			return
 		}

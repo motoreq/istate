@@ -23,10 +23,11 @@ var errorCodes = map[int]string{
 	1009: "UpdateState: PutState",
 	1010: "Marshal error at DeleteState",
 	1011: "Unmarshal error at DeleteState",
-	1012: "DeleteState: DelStateError",
+	1012: "DeleteState: DelState Error",
 	1013: "DeleteState: Key does not exist: %s",
 	1014: "CreateState: Struct with incorrect type passed: Expected - %v, Received - %v",
 	1015: "UpdateState: Struct with incorrect type passed: Expected - %v, Received - %v",
+	1016: "CompactIndex: DelState Error",
 
 	// Util errors
 	2001: "json tag is not set for struct field: %s of type: %v",
@@ -44,6 +45,7 @@ var errorCodes = map[int]string{
 	2013: "findMapDifference: Source and Target type are not same, Received: %v %v",
 	2014: "findMapDifference: Only map kind is expected, Received: %v %v",
 	2015: "traverseAndGenerateRelationalTable: currentdepth: %v, not found in depthKindMap",
+	2016: "traverseAndGenerateRelationalTable: Cannot find Kind for convertToPrimitiveType",
 
 	// Query
 	3001: "Query: Marshal Error:",
@@ -65,6 +67,17 @@ var errorCodes = map[int]string{
 	3017: "convertToPrimitiveType: Invalid primitive type received: %v",
 	3018: "convertToRightType: Field not found in mapKeyKindMap: %v",
 	3019: "parseAndEvalSingle: Unmarshal error",
+
+	// General utils
+	4001: "convertObjToMap: Marshal Error",
+	4002: "convertObjToMap: Unmarshal Error",
+	4003: "getKeyByRange: Iterator.Next()",
+
+	// Index utils
+	5001: "fetchCompactIndex: GetState Error",
+	5002: "fetchCompactIndex: Unmarshal Error",
+	5003: "PutCompactIndex: Marshal Error",
+	5004: "fetchCompactIndex: PutState Error",
 }
 
 // Error is the interface of this package.
