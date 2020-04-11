@@ -1,4 +1,4 @@
-// Copyright 2020 <>. All rights reserved.
+//
 
 /*
 	Package iState is used to easily manage perform CRUD operations
@@ -23,3 +23,11 @@
 */
 
 package istate
+
+// Debts:
+// 1. Include data in index as optional
+// 2. Options to activate / deactivate / load cache
+// 3. Protobuf
+// 4. Trying out GetMultipleStates()
+// 5. Fix fieldJSONIndexMap and other meta data
+// 6. Load Docs Counter from db

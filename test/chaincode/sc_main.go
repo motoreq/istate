@@ -15,16 +15,19 @@ type TestSmartContract struct {
 
 // Init initializes chaincode.
 func (sc *TestSmartContract) Init(stub shim.ChaincodeStubInterface) pb.Response {
-	TestStructiState, err := istate.NewiState(TestStruct{})
+	err := sc.init()
 	if err != nil {
 		return shim.Error(err.Error())
 	}
-	sc.TestStructiState = TestStructiState
 	return shim.Success(nil)
 }
 
 func (sc *TestSmartContract) init() error {
-	TestStructiState, err := istate.NewiState(TestStruct{})
+	iStateOpt := istate.Options{
+		CacheSize:             1000000,
+		DefaultCompactionSize: 10000,
+	}
+	TestStructiState, err := istate.NewiState(TestStruct{}, iStateOpt)
 	if err != nil {
 		return err
 	}

@@ -1,4 +1,4 @@
-// Copyright 2020 <>. All rights reserved.
+//
 
 package istate
 
@@ -72,12 +72,23 @@ var errorCodes = map[int]string{
 	4001: "convertObjToMap: Marshal Error",
 	4002: "convertObjToMap: Unmarshal Error",
 	4003: "getKeyByRange: Iterator.Next()",
+	4004: "unmarshalToStruct",
+	4005: "getEncMap: Unmarshal error",
 
 	// Index utils
 	5001: "fetchCompactIndex: GetState Error",
 	5002: "fetchCompactIndex: Unmarshal Error",
 	5003: "PutCompactIndex: Marshal Error",
 	5004: "fetchCompactIndex: PutState Error",
+
+	// Cache
+	6001: "cache: loader: Key must be string. Invalid key type received: %v",
+	6002: "cache: loader: GetState Error",
+	6003: "cache: loader: Key is not found in StateDB",
+	6004: "getkvHash",
+	6005: "getuObj",
+	6006: "getIndeces",
+	6007: "delCache: Unable to delete",
 }
 
 // Error is the interface of this package.

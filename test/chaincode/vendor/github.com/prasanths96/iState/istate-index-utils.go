@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-type compactIndexV map[string]struct{}
+type compactIndexV map[string]string
 
 func removeKeysWithStar(keyValue map[string][]byte) {
 	for index := range keyValue {

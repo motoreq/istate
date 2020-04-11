@@ -173,7 +173,7 @@ func (iState *iState) getStateByRange(stub shim.ChaincodeStubInterface, startKey
 			continue
 		}
 		wg.Add(1)
-		func() {
+		go func() {
 			defer wg.Done()
 			// Doesn't fetch if already fetched before
 			// Do Multi thread?
