@@ -3,148 +3,143 @@
 package istate
 
 import (
-	"fmt"
 	"github.com/hyperledger/fabric/core/chaincode/shim"
-	"runtime"
-	"time"
 )
 
-var GOMAXPROCS = runtime.GOMAXPROCS(1)
-
-func (iState *iState) fetchEq(stub shim.ChaincodeStubInterface, encodedKey string, qEnv *queryEnv) (fetchedKVMap map[string][]byte, iStateErr Error) {
+func (iState *iState) fetchEq(stub shim.ChaincodeStubInterface, encodedKey string) (kindecesMap map[string]map[string][]byte, iStateErr Error) {
 	start := encodedKey
 	end := encodedKey + asciiLast
-	fetchedKVMap, iStateErr = iState.getStateByRange(stub, start, end, qEnv)
+	kindecesMap, iStateErr = iState.getStateByRange(stub, start, end)
 	if iStateErr != nil {
 		return
 	}
 	return
 }
 
-func (iState *iState) fetchNeq(stub shim.ChaincodeStubInterface, encodedKey string, qEnv *queryEnv) (keyValMap map[string][]byte, iStateErr Error) {
+func (iState *iState) fetchNeq(stub shim.ChaincodeStubInterface, encodedKey string) (kindecesMap map[string]map[string][]byte, iStateErr Error) {
 	start := encodedKey
 	end := encodedKey + asciiLast
-	keyValMap, iStateErr = iState.getStateByRange(stub, start, end, qEnv)
+	kindecesMap, iStateErr = iState.getStateByRange(stub, start, end)
 	if iStateErr != nil {
 		return
 	}
 	return
 }
 
-func (iState *iState) fetchGt(stub shim.ChaincodeStubInterface, encodedKey string, qEnv *queryEnv) (keyValMap map[string][]byte, iStateErr Error) {
+func (iState *iState) fetchGt(stub shim.ChaincodeStubInterface, encodedKey string) (kindecesMap map[string]map[string][]byte, iStateErr Error) {
 	start := encodedKey
 	end := encodedKey + asciiLast
-	keyValMap, iStateErr = iState.getStateByRange(stub, start, end, qEnv)
+	kindecesMap, iStateErr = iState.getStateByRange(stub, start, end)
 	if iStateErr != nil {
 		return
 	}
 	return
 }
 
-func (iState *iState) fetchLt(stub shim.ChaincodeStubInterface, encodedKey string, qEnv *queryEnv) (keyValMap map[string][]byte, iStateErr Error) {
+func (iState *iState) fetchLt(stub shim.ChaincodeStubInterface, encodedKey string) (kindecesMap map[string]map[string][]byte, iStateErr Error) {
 	start := encodedKey
 	end := encodedKey + asciiLast
-	keyValMap, iStateErr = iState.getStateByRange(stub, start, end, qEnv)
+	kindecesMap, iStateErr = iState.getStateByRange(stub, start, end)
 	if iStateErr != nil {
 		return
 	}
 	return
 }
 
-func (iState *iState) fetchGte(stub shim.ChaincodeStubInterface, encodedKey string, qEnv *queryEnv) (keyValMap map[string][]byte, iStateErr Error) {
+func (iState *iState) fetchGte(stub shim.ChaincodeStubInterface, encodedKey string) (kindecesMap map[string]map[string][]byte, iStateErr Error) {
 	start := encodedKey
 	end := encodedKey + asciiLast
-	keyValMap, iStateErr = iState.getStateByRange(stub, start, end, qEnv)
+	kindecesMap, iStateErr = iState.getStateByRange(stub, start, end)
 	if iStateErr != nil {
 		return
 	}
 	return
 }
 
-func (iState *iState) fetchLte(stub shim.ChaincodeStubInterface, encodedKey string, qEnv *queryEnv) (keyValMap map[string][]byte, iStateErr Error) {
+func (iState *iState) fetchLte(stub shim.ChaincodeStubInterface, encodedKey string) (kindecesMap map[string]map[string][]byte, iStateErr Error) {
 	start := encodedKey
 	end := encodedKey + asciiLast
-	keyValMap, iStateErr = iState.getStateByRange(stub, start, end, qEnv)
+	kindecesMap, iStateErr = iState.getStateByRange(stub, start, end)
 	if iStateErr != nil {
 		return
 	}
 	return
 }
 
-func (iState *iState) fetchCmplx(stub shim.ChaincodeStubInterface, encodedKey string, qEnv *queryEnv) (keyValMap map[string][]byte, iStateErr Error) {
+func (iState *iState) fetchCmplx(stub shim.ChaincodeStubInterface, encodedKey string) (kindecesMap map[string]map[string][]byte, iStateErr Error) {
 	start := encodedKey
 	end := encodedKey + asciiLast
-	keyValMap, iStateErr = iState.getStateByRange(stub, start, end, qEnv)
+	kindecesMap, iStateErr = iState.getStateByRange(stub, start, end)
 	if iStateErr != nil {
 		return
 	}
 	return
 }
 
-func (iState *iState) fetchSeq(stub shim.ChaincodeStubInterface, encodedKey string, qEnv *queryEnv) (keyValMap map[string][]byte, iStateErr Error) {
+func (iState *iState) fetchSeq(stub shim.ChaincodeStubInterface, encodedKey string) (kindecesMap map[string]map[string][]byte, iStateErr Error) {
 	start := encodedKey
 	end := encodedKey + asciiLast
-	keyValMap, iStateErr = iState.getStateByRange(stub, start, end, qEnv)
+	kindecesMap, iStateErr = iState.getStateByRange(stub, start, end)
 	if iStateErr != nil {
 		return
 	}
 	return
 }
 
-func (iState *iState) fetchSneq(stub shim.ChaincodeStubInterface, encodedKey string, qEnv *queryEnv) (keyValMap map[string][]byte, iStateErr Error) {
+func (iState *iState) fetchSneq(stub shim.ChaincodeStubInterface, encodedKey string) (kindecesMap map[string]map[string][]byte, iStateErr Error) {
 	start := encodedKey
 	end := encodedKey + asciiLast
-	keyValMap, iStateErr = iState.getStateByRange(stub, start, end, qEnv)
+	kindecesMap, iStateErr = iState.getStateByRange(stub, start, end)
 	if iStateErr != nil {
 		return
 	}
 	return
 }
 
-func (iState *iState) fetchSgt(stub shim.ChaincodeStubInterface, encodedKey string, qEnv *queryEnv) (keyValMap map[string][]byte, iStateErr Error) {
+func (iState *iState) fetchSgt(stub shim.ChaincodeStubInterface, encodedKey string) (kindecesMap map[string]map[string][]byte, iStateErr Error) {
 	start := encodedKey
 	end := encodedKey + asciiLast
-	keyValMap, iStateErr = iState.getStateByRange(stub, start, end, qEnv)
+	kindecesMap, iStateErr = iState.getStateByRange(stub, start, end)
 	if iStateErr != nil {
 		return
 	}
 	return
 }
 
-func (iState *iState) fetchSlt(stub shim.ChaincodeStubInterface, encodedKey string, qEnv *queryEnv) (keyValMap map[string][]byte, iStateErr Error) {
+func (iState *iState) fetchSlt(stub shim.ChaincodeStubInterface, encodedKey string) (kindecesMap map[string]map[string][]byte, iStateErr Error) {
 	start := encodedKey
 	end := encodedKey + asciiLast
-	keyValMap, iStateErr = iState.getStateByRange(stub, start, end, qEnv)
+	kindecesMap, iStateErr = iState.getStateByRange(stub, start, end)
 	if iStateErr != nil {
 		return
 	}
 	return
 }
 
-func (iState *iState) fetchSgte(stub shim.ChaincodeStubInterface, encodedKey string, qEnv *queryEnv) (keyValMap map[string][]byte, iStateErr Error) {
+func (iState *iState) fetchSgte(stub shim.ChaincodeStubInterface, encodedKey string) (kindecesMap map[string]map[string][]byte, iStateErr Error) {
 	start := encodedKey
 	end := encodedKey + asciiLast
-	keyValMap, iStateErr = iState.getStateByRange(stub, start, end, qEnv)
+	kindecesMap, iStateErr = iState.getStateByRange(stub, start, end)
 	if iStateErr != nil {
 		return
 	}
 	return
 }
 
-func (iState *iState) fetchSlte(stub shim.ChaincodeStubInterface, encodedKey string, qEnv *queryEnv) (keyValMap map[string][]byte, iStateErr Error) {
+func (iState *iState) fetchSlte(stub shim.ChaincodeStubInterface, encodedKey string) (kindecesMap map[string]map[string][]byte, iStateErr Error) {
 	start := encodedKey
 	end := encodedKey + asciiLast
-	keyValMap, iStateErr = iState.getStateByRange(stub, start, end, qEnv)
+	kindecesMap, iStateErr = iState.getStateByRange(stub, start, end)
 	if iStateErr != nil {
 		return
 	}
 	return
 }
 
-func (iState *iState) fetchScmplx(stub shim.ChaincodeStubInterface, encodedKey string, qEnv *queryEnv) (keyValMap map[string][]byte, iStateErr Error) {
+func (iState *iState) fetchScmplx(stub shim.ChaincodeStubInterface, encodedKey string) (kindecesMap map[string]map[string][]byte, iStateErr Error) {
 	start := encodedKey
 	end := encodedKey + asciiLast
-	keyValMap, iStateErr = iState.getStateByRange(stub, start, end, qEnv)
+	kindecesMap, iStateErr = iState.getStateByRange(stub, start, end)
 	if iStateErr != nil {
 		return
 	}
@@ -152,28 +147,24 @@ func (iState *iState) fetchScmplx(stub shim.ChaincodeStubInterface, encodedKey s
 }
 
 // TODO Cache startKey, endKey too?
-func (iState *iState) getStateByRange(stub shim.ChaincodeStubInterface, startKey string, endKey string, qEnv *queryEnv) (fetchedKVMap map[string][]byte, iStateErr Error) {
-	fetchedKVMap = make(map[string][]byte)
+func (iState *iState) getStateByRange(stub shim.ChaincodeStubInterface, startKey string, endKey string) (kindecesMap map[string]map[string][]byte, iStateErr Error) {
+	kindecesMap = make(map[string]map[string][]byte)
 	// Compact Index
-	start := time.Now()
 	cIndexKey, _ := generateCIndexKey(removeLastSeparator(startKey))
+
 	cIndexV, iStateErr := fetchCompactIndex(stub, cIndexKey)
 	if iStateErr != nil {
 		return
 	}
-	fmt.Println("Fetched Compacted Index in: ", time.Now().Sub(start))
-	start = time.Now()
-	for keyRef := range cIndexV {
-		iStateErr = loadFetchedKV(stub, fetchedKVMap, keyRef, qEnv)
+	for keyRef, hashString := range cIndexV {
+
+		iStateErr = iState.loadkindecesMap(stub, kindecesMap, keyRef, hashString)
 		if iStateErr != nil {
 			return
 		}
 	}
 
-	fmt.Println("Loaded Compacted Index in: ", time.Now().Sub(start))
-
 	// Normal Index
-	start = time.Now()
 	iterator, err := stub.GetStateByRange(startKey, endKey)
 	if err != nil {
 		iStateErr = NewError(err, 3006)
@@ -187,21 +178,20 @@ func (iState *iState) getStateByRange(stub shim.ChaincodeStubInterface, startKey
 			iStateErr = NewError(err, 3007)
 			return
 		}
-		// keyRef := string(iteratorResult.GetValue())
 		indexkey := iteratorResult.GetKey()
+		hashBytes := iteratorResult.GetValue()
 		keyRef := getKeyFromIndex(indexkey)
 
-		iStateErr = loadFetchedKV(stub, fetchedKVMap, keyRef, qEnv)
+		iStateErr = iState.loadkindecesMap(stub, kindecesMap, keyRef, string(hashBytes))
 		if iStateErr != nil {
 			return
 		}
 	}
-	fmt.Println("Fetched Normal Index in: ", time.Now().Sub(start))
+
 	return
 }
 func (iState *iState) getStateByRangeWithPagination(stub shim.ChaincodeStubInterface, startKey string, endKey string, qEnv *queryEnv, pageSize int32, bookmark string) (fetchedKVMap map[string][]byte, iStateErr Error) {
-	start := time.Now()
-	fmt.Println("Before 4:", start)
+
 	fetchedKVMap = make(map[string][]byte)
 	// Compact Index
 	cIndexKey, _ := generateCIndexKey(removeLastSeparator(startKey))
@@ -216,10 +206,7 @@ func (iState *iState) getStateByRangeWithPagination(stub shim.ChaincodeStubInter
 			return
 		}
 	}
-	fmt.Println("After 4: ", time.Now().Sub(start))
 
-	start = time.Now()
-	fmt.Println("Before 5:", start)
 	// Normal Index
 	iterator, _, err := stub.GetStateByRangeWithPagination(startKey, endKey, pageSize, bookmark)
 	if err != nil {
@@ -234,7 +221,6 @@ func (iState *iState) getStateByRangeWithPagination(stub shim.ChaincodeStubInter
 			iStateErr = NewError(err, 3007)
 			return
 		}
-		// keyRef := string(iteratorResult.GetValue())
 		indexkey := iteratorResult.GetKey()
 		keyRef := getKeyFromIndex(indexkey)
 
@@ -243,7 +229,7 @@ func (iState *iState) getStateByRangeWithPagination(stub shim.ChaincodeStubInter
 			return
 		}
 	}
-	fmt.Println("After 5: ", time.Now().Sub(start))
+
 	return
 }
 
@@ -255,7 +241,6 @@ func loadFetchedKV(stub shim.ChaincodeStubInterface, fetchedKVMap map[string][]b
 		return
 	}
 	// Doesn't fetch if already fetched before
-	// valBytes, err := ConcurrentGetState(stub, keyRef)
 	valBytes, err := stub.GetState(keyRef)
 	if err != nil {
 		iStateErr = NewError(err, 3008)
@@ -267,27 +252,22 @@ func loadFetchedKV(stub shim.ChaincodeStubInterface, fetchedKVMap map[string][]b
 	}
 	return
 }
-
-func ConcurrentGetState(stub shim.ChaincodeStubInterface, key string) (valBytes []byte, err error) {
-	if key == "" {
+func (iState *iState) loadkindecesMap(stub shim.ChaincodeStubInterface, kindecesMap map[string]map[string][]byte, keyRef string, newHash string) (iStateErr Error) {
+	hashString, iStateErr := iState.getkvHash(keyRef)
+	if iStateErr != nil {
 		return
 	}
-	fmt.Println("God.. It's fetching from ConcurrentGetState(): Key: ", key)
-	startKey := key
-	modifiedLastChar := string((key[len(key)-1] + 1))
-	endKey := key[:len(key)-1] + modifiedLastChar
-	iterator, err := stub.GetStateByRange(startKey, endKey)
-	if err != nil {
-		return
-	}
-	defer iterator.Close()
-	for iterator.HasNext() {
-		iteratorResult, nerr := iterator.Next()
-		if nerr != nil {
-			return nil, nerr
+	if hashString != newHash {
+		iStateErr = iState.removeCache(keyRef)
+		if iStateErr != nil {
+			return
 		}
-		valBytes = iteratorResult.GetValue()
-		break
 	}
+	indeces, iStateErr := iState.getIndeces(keyRef)
+	if iStateErr != nil {
+		return
+	}
+	kindecesMap[keyRef] = indeces
+
 	return
 }

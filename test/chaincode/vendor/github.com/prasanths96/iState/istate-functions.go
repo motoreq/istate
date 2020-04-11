@@ -5,7 +5,9 @@ package istate
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/bluele/gcache"
 	"github.com/hyperledger/fabric/core/chaincode/shim"
+	"hash/crc64"
 	"reflect"
 	"sync"
 )
@@ -20,21 +22,26 @@ type iState struct {
 	primaryIndex      int
 	docsCounter       map[string]int
 
-	//
-	kvCache       *kvCache
-	keyEncKVCache *keyEncKVCache
-	queryEnv      *queryEnv
-
 	CompactionSize int
+
+	// Cache
+	kvCache   gcache.Cache
+	hashTable *crc64.Table
+
+	currentStub *shim.ChaincodeStubInterface
+}
+
+type Options struct {
+	CacheSize             int
+	DefaultCompactionSize int
 }
 
 // NewiState function is used to
-func NewiState(object interface{}) (iStateInterface Interface, iStateErr Error) {
+func NewiState(object interface{}, opt Options) (iStateInterface Interface, iStateErr Error) {
 	iStateLogger.Infof("Inside NewiState")
 	defer iStateLogger.Infof("Exiting NewiState")
 
 	filledRef := fillZeroValue(object)
-	// fmt.Printf("FILLEDREF: %v\n", filledRef)
 	// A map of JSON fieldname & it's position in the struct
 	fieldJSONIndexMap := make(map[string]int)
 	jsonFieldKindMap := make(map[string]reflect.Kind)
@@ -59,7 +66,7 @@ func NewiState(object interface{}) (iStateInterface Interface, iStateErr Error) 
 	}
 
 	docsCounter := make(map[string]int)
-	iStateInterface = &iState{
+	iStateIns := &iState{
 		structRef:         filledRef,
 		fieldJSONIndexMap: fieldJSONIndexMap,
 		jsonFieldKindMap:  jsonFieldKindMap,
@@ -67,15 +74,18 @@ func NewiState(object interface{}) (iStateInterface Interface, iStateErr Error) 
 		depthKindMap:      depthKindMap,
 		primaryIndex:      i,
 		docsCounter:       docsCounter,
-		kvCache:           &kvCache{kvCache: make(map[string][]byte)},
-		keyEncKVCache:     &keyEncKVCache{keyEncKVCache: make(map[string]map[string][]byte)},
-		CompactionSize:    10000,
+		CompactionSize:    opt.DefaultCompactionSize,
+		hashTable:         crc64.MakeTable(crc64.ISO),
 	}
-	fmt.Println("JSON FIELD KIND MAP", jsonFieldKindMap)
-	fmt.Println("MAP KEY KIND MAP", mapKeyKindMap)
-	fmt.Println("DEPTH KIND MAP", depthKindMap)
-	fmt.Println("=========================================================================================")
-	fmt.Println("DOCSCOUNT MAP:", docsCounter)
+
+	// Cache
+	kvCache := gcache.New(opt.CacheSize).
+		ARC().
+		LoaderFunc(iStateIns.loader).
+		Build()
+
+	iStateIns.kvCache = kvCache
+	iStateInterface = iStateIns
 
 	return
 }
@@ -84,6 +94,8 @@ func NewiState(object interface{}) (iStateInterface Interface, iStateErr Error) 
 func (iState *iState) CreateState(stub shim.ChaincodeStubInterface, object interface{}) (iStateErr Error) {
 	iStateLogger.Infof("Inside CreateState")
 	defer iStateLogger.Infof("Exiting CreateState")
+
+	iState.setStub(&stub)
 
 	if reflect.TypeOf(object) != reflect.TypeOf(iState.structRef) {
 		iStateErr = NewError(nil, 1014, reflect.TypeOf(iState.structRef), reflect.TypeOf(object))
@@ -106,7 +118,8 @@ func (iState *iState) CreateState(stub shim.ChaincodeStubInterface, object inter
 		return
 	}
 
-	encodedKeyValPairs, docsCounter, _, iStateErr := iState.encodeState(oMap, keyref)
+	hashString := iState.hash(mo)
+	encodedKeyValPairs, docsCounter, _, iStateErr := iState.encodeState(oMap, keyref, hashString)
 	if iStateErr != nil {
 		return
 	}
@@ -126,6 +139,11 @@ func (iState *iState) CreateState(stub shim.ChaincodeStubInterface, object inter
 		iState.incDocsCounter(index, count)
 	}
 
+	iStateErr = iState.setCache(keyref, object, mo, hashString)
+	if iStateErr != nil {
+		return
+	}
+
 	return nil
 }
 
@@ -133,6 +151,8 @@ func (iState *iState) CreateState(stub shim.ChaincodeStubInterface, object inter
 func (iState *iState) ReadState(stub shim.ChaincodeStubInterface, primaryKey interface{}) (stateBytes []byte, iStateErr Error) {
 	iStateLogger.Infof("Inside ReadState")
 	defer iStateLogger.Infof("Exiting ReadState")
+
+	iState.setStub(&stub)
 
 	primaryKeyString := fmt.Sprintf("%v", primaryKey)
 
@@ -149,6 +169,8 @@ func (iState *iState) UpdateState(stub shim.ChaincodeStubInterface, object inter
 	iStateLogger.Infof("Inside UpdateState")
 	defer iStateLogger.Infof("Exiting UpdateState")
 
+	iState.setStub(&stub)
+
 	if reflect.TypeOf(object) != reflect.TypeOf(iState.structRef) {
 		iStateErr = NewError(nil, 1015, reflect.TypeOf(iState.structRef), reflect.TypeOf(object))
 		return
@@ -159,7 +181,6 @@ func (iState *iState) UpdateState(stub shim.ChaincodeStubInterface, object inter
 
 	stateBytes, iStateErr := iState.ReadState(stub, keyref)
 	if iStateErr != nil {
-		// outiStateErr = tiStateErr
 		return
 	}
 
@@ -189,28 +210,24 @@ func (iState *iState) UpdateState(stub shim.ChaincodeStubInterface, object inter
 
 	appendOrModifyMap, deleteMap, iStateErr := iState.findDifference(source, target)
 	if iStateErr != nil {
-		//outiStateErr = iStateErr
 		return
 	}
 
 	if len(appendOrModifyMap) == 0 && len(deleteMap) == 0 {
-		//outiStateErr = NewError(nil, 1004)
 		iStateErr = NewError(nil, 1004)
 		return
 	}
-	// fmt.Println("Changes: ", appendOrModifyMap, deleteMap)
 
+	hashString := iState.hash(mo)
 	// Delete first, so that TestStruct_aMap_user1 (map key) does not get deleted.
 	// When updating same key of a map, the above key gets over-writted at first,
 	// then when deleting, the over-written key gets deleted.
-	deleteEncodedKeyValPairs, delDocsCounter, _, iStateErr := iState.encodeState(deleteMap, keyref)
+	deleteEncodedKeyValPairs, delDocsCounter, _, iStateErr := iState.encodeState(deleteMap, keyref, hashString)
 	if iStateErr != nil {
-		// iStateErr = iStateErr
 		return
 	}
-	appendEncodedKeyValPairs, addDocsCounter, _, iStateErr := iState.encodeState(appendOrModifyMap, keyref)
+	appendEncodedKeyValPairs, addDocsCounter, _, iStateErr := iState.encodeState(target, keyref, hashString)
 	if iStateErr != nil {
-		// iStateErr = iStateErr
 		return
 	}
 	// Main key - value
@@ -238,6 +255,11 @@ func (iState *iState) UpdateState(stub shim.ChaincodeStubInterface, object inter
 		iState.incDocsCounter(index, count)
 	}
 
+	iStateErr = iState.setCache(keyref, object, mo, hashString)
+	if iStateErr != nil {
+		return
+	}
+
 	return nil
 }
 
@@ -245,6 +267,8 @@ func (iState *iState) UpdateState(stub shim.ChaincodeStubInterface, object inter
 func (iState *iState) DeleteState(stub shim.ChaincodeStubInterface, primaryKey interface{}) (iStateErr Error) {
 	iStateLogger.Infof("Inside DeleteState")
 	defer iStateLogger.Infof("Exiting DeleteState")
+
+	iState.setStub(&stub)
 
 	keyref := fmt.Sprintf("%v", primaryKey)
 
@@ -268,7 +292,7 @@ func (iState *iState) DeleteState(stub shim.ChaincodeStubInterface, primaryKey i
 	// Delete first, so that TestStruct_aMap_user1 (map key) does not get deleted.
 	// When updating same key of a map, the above key gets over-writted at first,
 	// then when deleting, the over-written key gets deleted.
-	encodedKeyValPairs, delDocsCounter, _, iStateErr := iState.encodeState(source, keyref)
+	encodedKeyValPairs, delDocsCounter, _, iStateErr := iState.encodeState(source, keyref, "")
 	if iStateErr != nil {
 		return
 	}
@@ -295,18 +319,18 @@ func (iState *iState) CompactIndex(stub shim.ChaincodeStubInterface) (iStateErr 
 	iStateLogger.Infof("Inside CompactIndex")
 	defer iStateLogger.Infof("Exiting CompactIndex")
 
+	iState.setStub(&stub)
+
 	uObj, iStateErr := convertObjToMap(iState.structRef)
 	if iStateErr != nil {
 		return
 	}
 
 	keyRef := ""
-	encodedKV, _, _, iStateErr := iState.encodeState(uObj, keyRef, 2) // separate key & value = 2, query = false
+	encodedKV, _, _, iStateErr := iState.encodeState(uObj, keyRef, "", 2) // separate key & value = 2, query = false
 	if iStateErr != nil {
 		return
 	}
-
-	// fmt.Println("GENERATED DUMMY INDEXES:", encodedKV)
 
 	compactedIndexMap := make(map[string]compactIndexV) // compacted index
 
@@ -319,10 +343,9 @@ func (iState *iState) CompactIndex(stub shim.ChaincodeStubInterface) (iStateErr 
 		if iStateErr != nil {
 			return
 		}
-		fmt.Println("Length of kvMap:", len(kvMap))
 
 		alreadyFetched := make(map[string]struct{})
-		for origIndexK := range kvMap {
+		for origIndexK, hashBytes := range kvMap {
 			compactIndex, keyRef := generateCIndexKey(origIndexK)
 			if compactIndex == "" {
 				continue
@@ -342,7 +365,7 @@ func (iState *iState) CompactIndex(stub shim.ChaincodeStubInterface) (iStateErr 
 			if len(cIndexVal) == 0 {
 				cIndexVal = make(compactIndexV)
 			}
-			cIndexVal[keyRef] = struct{}{}
+			cIndexVal[keyRef] = string(hashBytes)
 			if !reflect.DeepEqual(oldCIndexVal, cIndexVal) {
 				compactedIndexMap[compactIndex] = cIndexVal
 				// Delete original index key
@@ -356,7 +379,6 @@ func (iState *iState) CompactIndex(stub shim.ChaincodeStubInterface) (iStateErr 
 
 	}
 
-	// fmt.Println("GENERATED COMPACT INDECES:", compactedIndexMap)
 	iStateErr = putCompactIndex(stub, compactedIndexMap)
 	if iStateErr != nil {
 		return

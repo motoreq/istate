@@ -237,7 +237,7 @@ func (iState *iState) getPrimaryKey(object interface{}) (key string) {
 }
 
 //
-func (iState *iState) encodeState(oMap map[string]interface{}, keyref string, flags ...interface{}) (encodedKeyValPairs map[string][]byte, docsCounter map[string]int, encKeyDocNameMap map[string]string, iStateErr Error) {
+func (iState *iState) encodeState(oMap map[string]interface{}, keyref string, hashString string, flags ...interface{}) (encodedKeyValPairs map[string][]byte, docsCounter map[string]int, encKeyDocNameMap map[string]string, iStateErr Error) {
 	// flags[0]: int -> 0: no separation, 1: keyRefSeparated index, 2: keyRef&ValueSeparated index (default: 0)
 	// flags[1]: isQuery (default: false)
 	// iStateLogger.Debugf("Inside encodeState")
@@ -292,7 +292,8 @@ func (iState *iState) encodeState(oMap map[string]interface{}, keyref string, fl
 					repeatedRow = true
 				default:
 					// encodedKeyValPairs[encodedKey] = []byte(keyref)
-					encodedKeyValPairs[encodedKey] = nullByte
+					// encodedKeyValPairs[encodedKey] = nullByte
+					encodedKeyValPairs[encodedKey] = []byte(hashString)
 				}
 			}
 
@@ -318,9 +319,7 @@ func encode(value interface{}) (encodedVal string, iStateErr Error) {
 			encodedVal = boolFalse
 		}
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		// fmt.Println("VAL RECEIVED AT ENCODE STATE:", value)
 		numString := fmt.Sprintf("%v", value)
-		// fmt.Println("numString", numString)
 		numEncodePrefix := ""
 		switch strings.HasPrefix(numString, "-") {
 		case true:
@@ -344,7 +343,6 @@ func encode(value interface{}) (encodedVal string, iStateErr Error) {
 		numEncodePrefix := positiveNum + numDigits[len(numString)]
 		encodedVal = numEncodePrefix + seperator + numString
 	case reflect.Float32, reflect.Float64:
-		// fmt.Println("ANY FLOATS?", value)
 		numString := fmt.Sprintf("%v", value)
 		numEncodePrefix := ""
 		switch strings.HasPrefix(numString, "-") {
@@ -362,7 +360,6 @@ func encode(value interface{}) (encodedVal string, iStateErr Error) {
 		numEncodePrefix += numDigits[len(wholeNum)]
 		encodedVal = numEncodePrefix + seperator + numString
 	case reflect.String:
-		// fmt.Println("Strings:", value)
 		encodedVal = value.(string)
 	default:
 		iStateErr = NewError(nil, 2005, kind)
@@ -403,40 +400,10 @@ func (iState *iState) findDifference(sourceObjMap map[string]interface{}, target
 			}
 
 		case fmt.Sprintf("%T", sourceObjMap[fieldName]) == "map[string]interface {}" || fmt.Sprintf("%T", targetObjMap[fieldName]) == "map[string]interface {}":
-			// if sourceObjMap[fieldName] == nil || targetObjMap[fieldName] == nil {
-			// 	switch sourceObjMap[fieldName] {
-			// 	case targetObjMap[fieldName]:
-			// 		continue
-			// 	case nil:
-			// 		appendOrModifyMap[fieldName] = targetObjMap[fieldName]
-			// 		continue
-			// 	default:
-			// 		deleteMap[fieldName] = sourceObjMap[fieldName]
-			// 		continue
-			// 	}
-			// }
-			// _, ok := iState.fieldJSONIndexMap[fieldName]
-
 			switch {
-			//case isRealMap(sourceObjMap[fieldName].(map[string]interface{}), targetObjMap[fieldName].(map[string]interface{})):
-			// Its a real map, if the field name does not exist in structref
-			// case !ok:
 			default:
 				var appendM, deleteM interface{}
-				// isNilSource := reflect.ValueOf(reflect.ValueOf(sourceObjMap[fieldName])).Field(0).IsNil()
-				// isNilTarget := reflect.ValueOf(reflect.ValueOf(targetObjMap[fieldName])).Field(0).IsNil()
-				// if isNilSource || isNilTarget {
-				// 	switch {
-				// 	case isNilSource == isNilTarget:
-				// 		continue
-				// 	case isNilSource:
-				// 		appendOrModifyMap[fieldName] = targetObjMap[fieldName]
-				// 		continue
-				// 	default:
-				// 		deleteMap[fieldName] = sourceObjMap[fieldName]
-				// 		continue
-				// 	}
-				// }
+
 				appendM, deleteM, iStateErr = findMapDifference(sourceObjMap[fieldName], targetObjMap[fieldName])
 				if iStateErr != nil {
 					return
@@ -447,19 +414,6 @@ func (iState *iState) findDifference(sourceObjMap map[string]interface{}, target
 				if deleteM != nil && reflect.ValueOf(deleteM).Len() != 0 {
 					deleteMap[fieldName] = deleteM
 				}
-				// default:
-				// 	var tempAppendOrModifyMap, tempDeleteMap map[string]interface{}
-				//
-				// 	tempAppendOrModifyMap, tempDeleteMap, iStateErr = iState.findDifference(sourceObjMap[fieldName].(map[string]interface{}), targetObjMap[fieldName].(map[string]interface{}))
-				// 	if iStateErr != nil {
-				// 		return
-				// 	}
-				// 	if reflect.ValueOf(tempAppendOrModifyMap).Len() != 0 {
-				// 		appendOrModifyMap[fieldName] = tempAppendOrModifyMap
-				// 	}
-				// 	if reflect.ValueOf(tempDeleteMap).Len() != 0 {
-				// 		deleteMap[fieldName] = tempDeleteMap
-				// 	}
 			}
 
 		default:
@@ -473,15 +427,11 @@ func (iState *iState) findDifference(sourceObjMap map[string]interface{}, target
 				fallthrough
 			case reflect.Float32, reflect.Float64:
 				fallthrough
-			//case reflect.Invalid:
-			//	fallthrough
 			case reflect.String:
 				if !reflect.DeepEqual(sourceObjMap[fieldName], targetObjMap[fieldName]) {
 					appendOrModifyMap[fieldName] = targetObjMap[fieldName]
 					deleteMap[fieldName] = sourceObjMap[fieldName]
 				}
-			// case reflect.Invalid:
-			// 	appendOrModifyMap[fieldName] = targetObjMap[fieldName]
 			default:
 				iStateErr = NewError(nil, 2010, k)
 			}
@@ -549,18 +499,7 @@ func findSliceDifference(sourceS interface{}, targetS interface{}) (appendS inte
 
 func findMapDifference(sourceM interface{}, targetM interface{}) (appendM interface{}, deleteM interface{}, iStateErr Error) {
 
-	// if reflect.TypeOf(sourceM) != reflect.TypeOf(targetM) {
-	// 	iStateErr = NewError(nil, 2013, reflect.TypeOf(sourceM), reflect.TypeOf(targetM))
-	// 	return
-	// }
-	// if sKind, tKind := reflect.ValueOf(sourceM).Kind(), reflect.ValueOf(targetM).Kind(); (sKind != reflect.Map || tKind != reflect.Map) {
-	// 	if
-	// 	iStateErr = NewError(nil, 2014, reflect.TypeOf(sourceM), reflect.TypeOf(targetM))
-	// 	return
-	// }
-
 	if reflect.DeepEqual(sourceM, targetM) {
-
 		return
 	}
 
@@ -881,17 +820,13 @@ func joinStringInterfaceSliceWithDotStar(slice []interface{}) (joinedString stri
 
 func initQueryEnv(qEnv *queryEnv) {
 	qEnv.ufetchedKVMap = make(map[string][]byte)
-	qEnv.ukeyEncKVMap = make(map[string]map[string][]byte)
+	qEnv.uindecesMap = make(map[string]map[string][]byte)
 }
 
 // Singular
 func removeLastSeparator(key string) (outKey string) {
 	outKey = key
 	if len(key) != 0 {
-		// fmt.Println("Inside remove last separator", key)
-		// fmt.Println("key[len(key)-1]", key[len(key)-1])
-		// fmt.Println("seperator[0]", seperator[0])
-		// fmt.Println("Good?", key[len(key)-1] == seperator[0])
 		if key[len(key)-1] == seperator[0] { // separator[0] is '_' (not "_")
 			outKey = key[:len(key)-1]
 		}

@@ -4,14 +4,12 @@ package istate
 
 import (
 	"encoding/json"
-	// "fmt"
 	"fmt"
 	"github.com/emirpasic/gods/trees/btree"
 	"github.com/hyperledger/fabric/core/chaincode/shim"
 	"reflect"
 	"strconv"
 	"strings"
-	"time"
 )
 
 // Syntax and Keywords
@@ -78,7 +76,7 @@ type querys struct {
 type efficientKeyType struct {
 	enckey        string
 	genericField  string
-	fetchFunc     func(shim.ChaincodeStubInterface, string, *queryEnv) (map[string][]byte, Error)
+	fetchFunc     func(shim.ChaincodeStubInterface, string) (map[string]map[string][]byte, Error)
 	relatedEncKV  map[string][]byte
 	relatedQueryP *[]map[string]interface{}
 	i             int
@@ -86,15 +84,14 @@ type efficientKeyType struct {
 
 type safeKeyFunc struct {
 	encKey        string
-	fetchFunc     func(shim.ChaincodeStubInterface, string, *queryEnv) (map[string][]byte, Error)
+	fetchFunc     func(shim.ChaincodeStubInterface, string) (map[string]map[string][]byte, Error)
 	relatedQueryP *[]map[string]interface{}
 	i             int
 }
 
 type queryEnv struct {
-	// For Query - u for universal
 	ufetchedKVMap map[string][]byte
-	ukeyEncKVMap  map[string]map[string][]byte
+	uindecesMap   map[string]map[string][]byte
 }
 
 // Query function is used to
@@ -103,14 +100,10 @@ type queryEnv struct {
 func (iState *iState) Query(stub shim.ChaincodeStubInterface, queryString string) (finalResult interface{}, iStateErr Error) {
 	iStateLogger.Infof("Inside Query")
 	defer iStateLogger.Infof("Exiting Query")
+	iState.setStub(&stub)
 
-	var qEnv *queryEnv
-	if iState.queryEnv != nil {
-		qEnv = iState.queryEnv
-	} else {
-		qEnv = &queryEnv{}
-		initQueryEnv(qEnv)
-	}
+	qEnv := &queryEnv{}
+	initQueryEnv(qEnv)
 
 	var uQuery []map[string]interface{}
 	err := json.Unmarshal([]byte(queryString), &uQuery)
@@ -119,59 +112,35 @@ func (iState *iState) Query(stub shim.ChaincodeStubInterface, queryString string
 		return
 	}
 
-	start := time.Now()
-	// fmt.Println(uQuery)
 	filteredKeys := make([]map[string]map[string][]byte, len(uQuery), len(uQuery))
 	for i := 0; i < len(uQuery); i++ {
-		filteredKeys[i], iStateErr = iState.parseAndEvalSingle(stub, uQuery[i], qEnv)
+		filteredKeys[i], iStateErr = iState.parseAndEvalSingle(stub, uQuery[i])
 		if iStateErr != nil {
 			return
 		}
 	}
-	fmt.Println("After Parse and Eval: ", time.Now().Sub(start))
-	// Or operation over results
 	combinedResults := orOperation(filteredKeys...)
-
-	start = time.Now()
 
 	finalResult = reflect.MakeSlice(reflect.SliceOf(reflect.TypeOf(iState.structRef)), len(combinedResults), len(combinedResults))
 	i := 0
 	for key := range combinedResults {
-		singleElem := reflect.New(reflect.TypeOf(iState.structRef)).Interface()
-		err := json.Unmarshal(qEnv.ufetchedKVMap[key], &singleElem)
-		if err != nil {
-			iStateErr = NewError(err, 3002)
+		var uObj reflect.Value
+		uObj, iStateErr = iState.getuObj(key)
+		if iStateErr != nil {
 			return
 		}
-		finalResult.(reflect.Value).Index(i).Set(reflect.ValueOf(singleElem).Elem())
+		finalResult.(reflect.Value).Index(i).Set(uObj)
 		i++
 	}
-	fmt.Println("After Unmarshal & make: ", time.Now().Sub(start))
 
 	finalResult = finalResult.(reflect.Value).Interface()
 	return
 }
 
-func (iState *iState) parseAndEvalSingle(stub shim.ChaincodeStubInterface, uQuery map[string]interface{}, qEnv *queryEnv) (filteredKeys map[string]map[string][]byte, iStateErr Error) {
+func (iState *iState) parseAndEvalSingle(stub shim.ChaincodeStubInterface, uQuery map[string]interface{}) (filteredKeys map[string]map[string][]byte, iStateErr Error) {
 
 	// Fields will be declared automatically and make not needed
-	querySet := querys{
-		// eq:   []map[string]interface{},
-		// neq:  []map[string]interface{},
-		// gt:   []map[string]interface{},
-		// lt:   []map[string]interface{},
-		// gte:  []map[string]interface{},
-		// lte:  []map[string]interface{},
-		// cmplx:[]map[string]interface{},
-
-		// seq:   []map[string]interface{},
-		// sneq:  []map[string]interface{},
-		// sgt:   []map[string]interface{},
-		// slt:   []map[string]interface{},
-		// sgte:  []map[string]interface{},
-		// slte:  []map[string]interface{},
-		// scmplx:[]map[string]interface{},
-	}
+	querySet := querys{}
 
 	for index, val := range uQuery {
 		if val, ok := val.(string); !ok {
@@ -188,7 +157,6 @@ func (iState *iState) parseAndEvalSingle(stub shim.ChaincodeStubInterface, uQuer
 		}
 		keyword := queryToEvaluate[:firstSpaceIndex]
 		secondPart := queryToEvaluate[firstSpaceIndex+1:]
-		// fmt.Println("SECOND PART: ", secondPart)
 		// Convert the string value to appropriate type
 		var convertedVal interface{}
 		convertedVal, iStateErr = convertToRightType(index, secondPart, iState.jsonFieldKindMap, iState.mapKeyKindMap)
@@ -211,7 +179,6 @@ func (iState *iState) parseAndEvalSingle(stub shim.ChaincodeStubInterface, uQuer
 
 		switch keyword {
 		case eq:
-			// eqQuery[newIndex] = newVal
 			querySet.eq = addKeyWithoutOverLap(querySet.eq, newIndex, newVal)
 		case neq:
 			querySet.neq = addKeyWithoutOverLap(querySet.neq, newIndex, newVal)
@@ -247,7 +214,7 @@ func (iState *iState) parseAndEvalSingle(stub shim.ChaincodeStubInterface, uQuer
 	}
 
 	var bestKey string
-	var fetchFunc func(shim.ChaincodeStubInterface, string, *queryEnv) (map[string][]byte, Error)
+	var fetchFunc func(shim.ChaincodeStubInterface, string) (map[string]map[string][]byte, Error)
 	var queryEncodedKVset encodedKVs
 
 	bestKey, fetchFunc, queryEncodedKVset, iStateErr = iState.getBestEncodedKeyFunc(querySet)
@@ -256,53 +223,13 @@ func (iState *iState) parseAndEvalSingle(stub shim.ChaincodeStubInterface, uQuer
 	}
 
 	// fmt.Println("BEST KEY: ", bestKey)
+	kindecesMap, iStateErr := fetchFunc(stub, bestKey)
 
-	var fetchedKVMap map[string][]byte
-	fetchedKVMap, iStateErr = fetchFunc(stub, bestKey, qEnv)
-	keyEncKVMap := make(map[string]map[string][]byte)
-	for key := range fetchedKVMap {
-		switch encodedKV, ok := qEnv.ukeyEncKVMap[key]; ok {
-		case true:
-			keyEncKVMap[key] = encodedKV
-		default:
-			var tempVar map[string]interface{}
-			err := json.Unmarshal(qEnv.ufetchedKVMap[key], &tempVar)
-			if err != nil {
-				iStateErr = NewError(err, 3019)
-				return
-			}
-			encodedKV, _, _, iStateErr = iState.encodeState(tempVar, key, 1) // keyRefSeperatedIndex = 1, query = false
-			if iStateErr != nil {
-				return
-			}
-			keyEncKVMap[key] = encodedKV
-			qEnv.ukeyEncKVMap[key] = encodedKV
-		}
-
-	}
-
-	evalAndFilterEq(stub, queryEncodedKVset.eq, keyEncKVMap)
-
-	//resultEq, iStateErr = iState.evaluateEq(stub, eqQuery)
-	// iState.evaluateNeq(stub, neqQuery)
-	// iState.evaluateGt(stub, gtQuery)
-	// iState.evaluateLt(stub, ltQuery)
-	// iState.evaluateGte(stub, gteQuery)
-	// iState.evaluateLte(stub, lteQuery)
-	// iState.evaluateCmplx(stub, cmplxQuery)
-
-	// iState.evaluateSeq(stub, seqQuery)
-	// iState.evaluateSneq(stub, sneqQuery)
-	// iState.evaluateSgt(stub, sgtQuery)
-	// iState.evaluateSlt(stub, sltQuery)
-	// iState.evaluateSgte(stub, sgteQuery)
-	// iState.evaluateSlte(stub, slteQuery)
-	// iState.evaluateScmplx(stub, scmplxQuery)
+	evalAndFilterEq(stub, queryEncodedKVset.eq, kindecesMap)
 
 	// and operation between fields
 
-	filteredKeys = keyEncKVMap
-	iState.queryEnv = qEnv
+	filteredKeys = kindecesMap
 	return
 }
 
@@ -313,7 +240,7 @@ func convertToRightType(fieldName string, toConvert string, jsonFieldKindMap map
 		iStateErr = NewError(nil, 3010)
 		return
 	}
-	// curField := fieldName
+
 	curField := splitFieldName[0]
 	nextIndex := 1
 	for {
@@ -390,7 +317,6 @@ func convertToPrimitiveType(toConvert string, kind reflect.Kind) (convertedVal i
 			return
 		}
 	case reflect.Int:
-		// fmt.Println("Atoi: Trying to Convert:", toConvert)
 		// If trying to convert float to int
 		if strings.Contains(toConvert, "e") {
 			floatVal, err := strconv.ParseFloat(toConvert, 64)
@@ -488,7 +414,7 @@ func convertToPrimitiveType(toConvert string, kind reflect.Kind) (convertedVal i
 	return
 }
 
-func (iState *iState) getBestEncodedKeyFunc(querySet querys) (encodedKey string, fetchFunc func(shim.ChaincodeStubInterface, string, *queryEnv) (map[string][]byte, Error), encodedKVSet encodedKVs, iStateErr Error) {
+func (iState *iState) getBestEncodedKeyFunc(querySet querys) (encodedKey string, fetchFunc func(shim.ChaincodeStubInterface, string) (map[string]map[string][]byte, Error), encodedKVSet encodedKVs, iStateErr Error) {
 	encodedKVSet = encodedKVs{
 		eq:    make(map[string][]byte),
 		neq:   make(map[string][]byte),
@@ -567,10 +493,6 @@ func (iState *iState) getBestEncodedKeyFunc(querySet querys) (encodedKey string,
 		return
 	}
 
-	// fmt.Println("BEST KEY: ", tree.LeftValue(), tree.LeftKey())
-	// Remove * from encodedKeys and replaces with ""
-	//removeStarFromKeys(encodedKeyVal)
-	// fmt.Println("Updated encodedKeyVal:", encodedKVSet.eq)
 	leftNodeVal := tree.LeftValue()
 	switch leftNodeVal == nil {
 	case true:
@@ -599,16 +521,15 @@ func hasLessStars(key1 string, key2 string) (ok bool) {
 	return
 }
 
-func (iState *iState) generateEncKeysAndAddToTree(query []map[string]interface{}, encKVMap map[string][]byte, fetchFunc func(shim.ChaincodeStubInterface, string, *queryEnv) (map[string][]byte, Error), tree *btree.Tree, safe *safeKeyFunc) (iStateErr Error) {
+func (iState *iState) generateEncKeysAndAddToTree(query []map[string]interface{}, encKVMap map[string][]byte, fetchFunc func(shim.ChaincodeStubInterface, string) (map[string]map[string][]byte, Error), tree *btree.Tree, safe *safeKeyFunc) (iStateErr Error) {
 	keyref := ""
 	for i := 0; i < len(query); i++ {
 		var encKeyDocNameMap map[string]string
 		var encodedKeyVal map[string][]byte
-		encodedKeyVal, _, encKeyDocNameMap, iStateErr = iState.encodeState(query[i], keyref, 1, true) // separation: 1, isQuery: true
+		encodedKeyVal, _, encKeyDocNameMap, iStateErr = iState.encodeState(query[i], keyref, "", 1, true) // separation: 1, isQuery: true
 		if iStateErr != nil {
 			return
 		}
-		// fmt.Println("Current: encodedKeyVal", encodedKeyVal)
 		for index, val := range encodedKeyVal {
 
 			genericField := encKeyDocNameMap[index]
@@ -628,7 +549,7 @@ func (iState *iState) generateEncKeysAndAddToTree(query []map[string]interface{}
 	return
 }
 
-func addToTree(tree *btree.Tree, encKey string, genericField string, numDocs int, fetchFunc func(shim.ChaincodeStubInterface, string, *queryEnv) (map[string][]byte, Error), relatedEncKV map[string][]byte, relatedQueryP *[]map[string]interface{}, i int) {
+func addToTree(tree *btree.Tree, encKey string, genericField string, numDocs int, fetchFunc func(shim.ChaincodeStubInterface, string) (map[string]map[string][]byte, Error), relatedEncKV map[string][]byte, relatedQueryP *[]map[string]interface{}, i int) {
 	efficientKey := efficientKeyType{
 		enckey:        encKey,
 		genericField:  genericField,

@@ -4,11 +4,41 @@ package istate
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/hyperledger/fabric/core/chaincode/shim"
+	"reflect"
 	"strings"
-	"time"
 )
+
+//
+func (iState *iState) setStub(stub *shim.ChaincodeStubInterface) {
+	iState.currentStub = stub
+	return
+}
+
+func (iState *iState) unmarshalToStruct(valBytes []byte) (uObj reflect.Value, iStateErr Error) {
+	singleElem := reflect.New(reflect.TypeOf(iState.structRef)).Interface()
+	err := json.Unmarshal(valBytes, &singleElem)
+	if err != nil {
+		iStateErr = NewError(err, 4004)
+		return
+	}
+	uObj = reflect.ValueOf(singleElem).Elem()
+	return
+}
+
+func (iState *iState) getQIndexMap(key string, valBytes []byte) (encodedKV map[string][]byte, iStateErr Error) {
+	var tempVar map[string]interface{}
+	err := json.Unmarshal(valBytes, &tempVar)
+	if err != nil {
+		iStateErr = NewError(err, 4005)
+		return
+	}
+	encodedKV, _, _, iStateErr = iState.encodeState(tempVar, key, "", 1) // keyRefSeperatedIndex = 1, query = false
+	if iStateErr != nil {
+		return
+	}
+	return
+}
 
 //
 func convertObjToMap(obj interface{}) (uObj map[string]interface{}, iStateErr Error) {
@@ -30,8 +60,6 @@ func getKeyByRange(stub shim.ChaincodeStubInterface, startKey, endKey string, li
 	if len(limit) == 0 {
 		limit = []int{int32Biggest}
 	}
-	start := time.Now()
-	fmt.Printf("Inside getKeyByRange.. startKey.. %v endKey.. %v\n", startKey, endKey)
 	fetchedKVMap = make(map[string][]byte)
 	iterator, err := stub.GetStateByRange(startKey, endKey)
 	if err != nil {
@@ -53,7 +81,6 @@ func getKeyByRange(stub shim.ChaincodeStubInterface, startKey, endKey string, li
 			break
 		}
 	}
-	fmt.Println("GETKEYBYRANGE: ", time.Now().Sub(start))
 	return
 }
 
