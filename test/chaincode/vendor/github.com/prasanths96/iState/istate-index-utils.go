@@ -4,7 +4,10 @@ package istate
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/hyperledger/fabric/core/chaincode/shim"
+	"math"
+	"strconv"
 	"strings"
 )
 
@@ -106,5 +109,74 @@ func putCompactIndex(stub shim.ChaincodeStubInterface, cIndex map[string]compact
 func generateCIndexKey(index string) (compactIndex string, keyRef string) {
 	compactIndex, keyRef = splitIndexAndKey(index)
 	compactIndex = removeLastSeparator(compactIndex)
+	return
+}
+
+func deriveIndexKeys(indexKey string, isQuery bool) (derivedKeys []string) {
+	splitParts := strings.Split(indexKey, seperator)
+	if len(splitParts) < 4 {
+		return
+	}
+	middleParts := splitParts[2 : len(splitParts)-1]
+	prefix := strings.Join(splitParts[:2], seperator)
+	suffix := splitParts[len(splitParts)-1]
+	derivedKeys = deriveIndexPermutation(middleParts, prefix, suffix, isQuery)
+
+	return
+}
+func deriveIndexPermutation(vals []string, prefix string, suffix string, isQuery bool) (permuteds []string) {
+	numDigits := len(vals)
+	maxCount := int(math.Pow(2, float64(numDigits)))
+	// We don't want 1111 -> which is already main index
+	permuteds = make([]string, maxCount-2)
+	for i := 1; i < maxCount-1; i++ {
+		permString := fmt.Sprintf("%v", strconv.FormatInt(int64(i), 2))
+
+		// Fill zeros
+		diff := numDigits - len(permString)
+		if diff > 0 {
+			bs := make([]byte, diff)
+			for i := 0; i < diff; i++ {
+				bs[i] = '0'
+			}
+			permString = string(bs) + permString
+		}
+		newIndex := asciiLast + removeSuffixZeros(permString) + seperator + prefix + seperator + getIndexPermVal(vals, permString, isQuery) + seperator + suffix
+		permuteds[i-1] = newIndex
+	}
+
+	return
+}
+
+func removeSuffixZeros(val string) (removed string) {
+	removed = val
+	for i := len(val) - 1; i > -1; i-- {
+		if val[i] != '0' {
+			if i+1 < len(val) {
+				removed = removed[:i+1]
+			}
+			break
+		}
+	}
+	return
+}
+
+func getIndexPermVal(vals []string, permString string, isQuery bool) (permVal string) {
+	permVal = ""
+	for i := 0; i < len(permString); i++ {
+		presetFlag := false
+		if permString[i] == '1' {
+			permVal += vals[i]
+			presetFlag = true
+		}
+		switch isQuery && !presetFlag {
+		case true:
+			permVal += star + seperator
+		default:
+			permVal += seperator
+		}
+	}
+	// Remove last seperator
+	permVal = permVal[:len(permVal)-len(seperator)]
 	return
 }

@@ -77,13 +77,11 @@ func (iState *iState) traverseAndGenerateRelationalTable(val interface{}, tableN
 			newRow[keyRefField] = keyref
 			currentDepth := joinStringInterfaceSliceWithDotStar(append([]interface{}{jsonTag}, tableName[1:]...))
 			newRow[fieldNameField] = currentDepth
-			// fmt.Printf("1 ADVANCED COUNTER: CURRENT DEPTH KEY: %v, For Row: %v\n", currentDepth, newRow)
 			newTable = append(newTable, newRow)
 		}
 	case reflect.Map:
 		mapKeys := reflect.ValueOf(val).MapKeys()
 		currentDepth := joinStringInterfaceSlice(append([]interface{}{jsonTag}, genericTableName...), seperator) + seperator
-		// fmt.Println("SEARCHED CURRENT DEPTH: ", currentDepth)
 
 		for i := 0; i < len(mapKeys); i++ {
 			var nextInitialTableName []interface{}
@@ -97,21 +95,10 @@ func (iState *iState) traverseAndGenerateRelationalTable(val interface{}, tableN
 				}
 				nextInitialTableName = append(genericTableName, "")
 				switch {
-				case meta[0].(int) > 1 && !isQuery:
-					newRow := make(map[string]interface{})
-					newGenericTableName := []interface{}{iStateTag}
-					newRow[docTypeField] = append(newGenericTableName, genericTableName...)
-					newRow[valueField] = convertedMapKey
-					newRow[keyRefField] = keyref
-					currentDepth := joinStringInterfaceSliceWithDotStar(append([]interface{}{jsonTag}, genericTableName...))
-					newRow[fieldNameField] = currentDepth
-					// fmt.Printf("2.1 ADVANCED COUNTER: CURRENT DEPTH KEY: %v, For Row: %v\n", currentDepth, newRow)
-					newTable = append(newTable, newRow)
 				default:
 					newRow := make(map[string]interface{})
 					currentDepth := joinStringInterfaceSliceWithDotStar(append([]interface{}{jsonTag}, genericTableName...))
 					newRow[fieldNameField] = currentDepth
-					// fmt.Printf("2.2 ADVANCED COUNTER: CURRENT DEPTH KEY: %v, For Row: %v\n", currentDepth, newRow)
 					newTable = append(newTable, newRow)
 				}
 			default:
@@ -140,9 +127,6 @@ func (iState *iState) traverseAndGenerateRelationalTable(val interface{}, tableN
 			newRow[docTypeField] = tableName
 			newRow[valueField] = ""
 			newRow[keyRefField] = keyref
-			// currentDepth := joinStringInterfaceSliceWithDotStar(append([]interface{}{jsonTag}, tableName[1:]...))
-			//newRow[fieldNameField] = currentDepth
-			// fmt.Printf("3 ADVANCED COUNTER: CURRENT DEPTH KEY: %v, For Row: %v\n", currentDepth, newRow)
 			newTable = append(newTable, newRow)
 		}
 	default:
@@ -153,49 +137,22 @@ func (iState *iState) traverseAndGenerateRelationalTable(val interface{}, tableN
 		var currentDepth string
 		newGenericTableName := []interface{}{iStateTag}
 		newGenericTableName = append(newGenericTableName, meta[1].([]interface{})...)
-
-		newGenericTableNameString := joinStringInterfaceSlice(newGenericTableName, seperator) // Here genericPrefix is not taken, as "_" will be added when encoding.
-		// Making inner elements searchable
-		tableNameString := joinStringInterfaceSlice(tableName, seperator)
-		addedGenericRow := false
-		if meta[0].(int) > 0 && newGenericTableNameString != tableNameString && !isQuery {
-			currentDepthStar = joinStringInterfaceSliceWithDotStar(append([]interface{}{jsonTag}, genericTableName...))
-			currentDepth = joinStringInterfaceSlice(append([]interface{}{jsonTag}, genericTableName...), seperator) //+ seperator
-			kind, ok := iState.depthKindMap[currentDepth]
-			if !ok {
-				// fmt.Println("CURRENT DEPTH BEFORE ERROR:", currentDepth)
-				iStateErr = NewError(nil, 2016)
-				return
-			}
-			valAsString := fmt.Sprintf("%v", reflect.ValueOf(val).Interface())
-			var convertedVal interface{}
-			convertedVal, iStateErr = convertToPrimitiveType(valAsString, kind)
-			if iStateErr != nil {
-				// fmt.Println("ERROR IS FROM 1")
-				return
-			}
-			newRow := make(map[string]interface{})
-			newRow[docTypeField] = newGenericTableName
-			newRow[valueField] = convertedVal
-			newRow[keyRefField] = keyref
-			newRow[fieldNameField] = currentDepthStar
-			// fmt.Printf("4 ADVANCED COUNTER: CURRENT DEPTH KEY: %v, For Row: %v\n", currentDepth, newRow)
-			newTable = append(newTable, newRow)
-			addedGenericRow = true
-		}
-
 		newRow := make(map[string]interface{})
 		switch !isQuery {
-		case true && !addedGenericRow:
+		case true: //&& !addedGenericRow:
 
 			currentDepthStar = joinStringInterfaceSliceWithDotStar(append([]interface{}{jsonTag}, tableName[1:]...))
-			currentDepth = joinStringInterfaceSlice(append([]interface{}{jsonTag}, tableName[1:]...), seperator) //+ seperator
-			// fmt.Println("NO QUERY", currentDepth)
+			currentDepth = joinStringInterfaceSlice(append([]interface{}{jsonTag}, tableName[1:]...), seperator)
 			newRow[fieldNameField] = currentDepthStar
 
 			kind, ok := iState.depthKindMap[currentDepth]
+			// Newly added
 			if !ok {
-				// fmt.Println("CURRENT DEPTH BEFORE ERROR:", currentDepth)
+				currentDepth = joinStringInterfaceSlice(append([]interface{}{jsonTag}, genericTableName...), seperator)
+				kind, ok = iState.depthKindMap[currentDepth]
+			}
+			// Newly added end
+			if !ok {
 				iStateErr = NewError(nil, 2016)
 				return
 			}
@@ -203,18 +160,15 @@ func (iState *iState) traverseAndGenerateRelationalTable(val interface{}, tableN
 			var convertedVal interface{}
 			convertedVal, iStateErr = convertToPrimitiveType(valAsString, kind)
 			if iStateErr != nil {
-				// fmt.Println("ERROR IS FROM 2")
 				return
 			}
 			newRow[docTypeField] = tableName
 			newRow[valueField] = convertedVal
 			newRow[keyRefField] = keyref
-			// fmt.Printf("5 ADVANCED COUNTER: CURRENT DEPTH KEY: %v, For Row: %v\n", currentDepth, newRow)
 		default:
 
 			currentDepthStar = joinStringInterfaceSliceWithDotStar(append([]interface{}{jsonTag}, genericTableName...))
-			currentDepth = joinStringInterfaceSlice(append([]interface{}{jsonTag}, genericTableName...), seperator) //+ seperator
-			// fmt.Println("YES QUERY", currentDepth)
+			currentDepth = joinStringInterfaceSlice(append([]interface{}{jsonTag}, genericTableName...), seperator)
 			newRow[fieldNameField] = currentDepthStar
 			newRow[docTypeField] = tableName
 			newRow[valueField] = reflect.ValueOf(val).Interface()
@@ -266,21 +220,26 @@ func (iState *iState) encodeState(oMap map[string]interface{}, keyref string, ha
 			if docType, ok := relationalTables[i][j][docTypeField]; ok {
 				encodedKeyParts := docType.([]interface{})
 				for k := 0; k < len(encodedKeyParts); k++ {
-					encodedKeyParts[k], iStateErr = encode(encodedKeyParts[k])
+					encodedKeyParts[k], iStateErr, _ = encode(encodedKeyParts[k])
 					if iStateErr != nil {
 						return
 					}
 				}
 				encodedVal := ""
+				// isNum := false
 				valInterface := relationalTables[i][j][valueField]
-				encodedVal, iStateErr = encode(valInterface)
+				encodedVal, iStateErr, _ = encode(valInterface)
 				if iStateErr != nil {
 					return
 				}
 
+				// if isNum {
+				// 	encodedVal = encodedVal
+				// }
+
 				switch separation {
 				case 0:
-					encodedKey = joinStringInterfaceSlice(encodedKeyParts, seperator) + seperator + encodedVal + seperator + null + keyref
+					encodedKey = joinStringInterfaceSlice(encodedKeyParts, seperator) + seperator + encodedVal + seperator + keyref
 				case 1:
 					encodedKey = joinStringInterfaceSlice(encodedKeyParts, seperator) + seperator + encodedVal + seperator
 				case 2:
@@ -293,7 +252,25 @@ func (iState *iState) encodeState(oMap map[string]interface{}, keyref string, ha
 				default:
 					// encodedKeyValPairs[encodedKey] = []byte(keyref)
 					// encodedKeyValPairs[encodedKey] = nullByte
-					encodedKeyValPairs[encodedKey] = []byte(hashString)
+					derivedKeys := deriveIndexKeys(encodedKey, isQuery)
+
+					switch isQuery {
+					case true:
+						// Selecting the one with less stars
+						bestSoFar := encodedKey
+						for i := 0; i < len(derivedKeys); i++ {
+							if hasLessOrEqStars(bestSoFar, derivedKeys[i]) {
+								bestSoFar = derivedKeys[i]
+							}
+							//encodedKeyValPairs[derivedKeys[i]] = []byte(hashString)
+						}
+						encodedKeyValPairs[bestSoFar] = []byte(hashString)
+					default:
+						encodedKeyValPairs[encodedKey] = []byte(hashString)
+						for i := 0; i < len(derivedKeys); i++ {
+							encodedKeyValPairs[derivedKeys[i]] = []byte(hashString)
+						}
+					}
 				}
 			}
 
@@ -309,7 +286,7 @@ func (iState *iState) encodeState(oMap map[string]interface{}, keyref string, ha
 	return
 }
 
-func encode(value interface{}) (encodedVal string, iStateErr Error) {
+func encode(value interface{}) (encodedVal string, iStateErr Error, isNum bool) {
 	switch kind := reflect.ValueOf(value).Kind(); kind {
 	case reflect.Bool:
 		switch value.(bool) {
@@ -319,6 +296,7 @@ func encode(value interface{}) (encodedVal string, iStateErr Error) {
 			encodedVal = boolFalse
 		}
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		isNum = true
 		numString := fmt.Sprintf("%v", value)
 		numEncodePrefix := ""
 		switch strings.HasPrefix(numString, "-") {
@@ -333,16 +311,18 @@ func encode(value interface{}) (encodedVal string, iStateErr Error) {
 			return
 		}
 		numEncodePrefix += numDigits[len(numString)]
-		encodedVal = numEncodePrefix + seperator + numString
+		encodedVal = numSym + numEncodePrefix + numSeparator + numString
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		isNum = true
 		numString := fmt.Sprintf("%v", value)
 		if _, ok := numDigits[len(numString)]; !ok {
 			iStateErr = NewError(nil, 2009, len(numString))
 			return
 		}
 		numEncodePrefix := positiveNum + numDigits[len(numString)]
-		encodedVal = numEncodePrefix + seperator + numString
+		encodedVal = numSym + numEncodePrefix + numSeparator + numString
 	case reflect.Float32, reflect.Float64:
+		isNum = true
 		numString := fmt.Sprintf("%v", value)
 		numEncodePrefix := ""
 		switch strings.HasPrefix(numString, "-") {
@@ -358,12 +338,33 @@ func encode(value interface{}) (encodedVal string, iStateErr Error) {
 			return
 		}
 		numEncodePrefix += numDigits[len(wholeNum)]
-		encodedVal = numEncodePrefix + seperator + numString
+		encodedVal = numSym + numEncodePrefix + numSeparator + numString
 	case reflect.String:
 		encodedVal = value.(string)
 	default:
 		iStateErr = NewError(nil, 2005, kind)
 		return
+	}
+	return
+}
+
+func isNum(indexVal string) (isNum bool) {
+	if len(indexVal) > 0 {
+		if string(indexVal[0]) == numSym {
+			isNum = true
+		}
+	}
+	return
+}
+
+func isPositive(numVal string) (positive bool, iStateErr Error) {
+	if len(numVal) < 2 {
+		iStateErr = NewError(nil, 2017)
+		return
+	}
+	// numVal[1] because numVal[0] has numSym / num marker
+	if numVal[1] == positiveNum[0] {
+		positive = true
 	}
 	return
 }

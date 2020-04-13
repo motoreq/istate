@@ -87,6 +87,10 @@ func NewiState(object interface{}, opt Options) (iStateInterface Interface, iSta
 	iStateIns.kvCache = kvCache
 	iStateInterface = iStateIns
 
+	fmt.Println("=============================================================")
+	fmt.Println("depthKindMap", depthKindMap)
+	fmt.Println("=============================================================")
+
 	return
 }
 

@@ -87,6 +87,10 @@ func NewiState(object interface{}, opt Options) (iStateInterface Interface, iSta
 	iStateIns.kvCache = kvCache
 	iStateInterface = iStateIns
 
+	fmt.Println("=============================================================")
+	fmt.Println("depthKindMap", depthKindMap)
+	fmt.Println("=============================================================")
+
 	return
 }
 
@@ -350,6 +354,7 @@ func (iState *iState) CompactIndex(stub shim.ChaincodeStubInterface) (iStateErr 
 			if compactIndex == "" {
 				continue
 			}
+			fmt.Println("Generated Compact Index: ", compactIndex)
 			var cIndexVal compactIndexV
 			var oldCIndexVal compactIndexV
 			switch val, ok := compactedIndexMap[compactIndex]; !ok {

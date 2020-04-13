@@ -33,8 +33,6 @@ const (
 	scmplx = "*cmplx"
 
 	splitDot = "."
-
-	asciiLast = "~"
 )
 
 type encodedKVs struct {
@@ -85,6 +83,7 @@ type efficientKeyType struct {
 type safeKeyFunc struct {
 	encKey        string
 	fetchFunc     func(shim.ChaincodeStubInterface, string) (map[string]map[string][]byte, Error)
+	relatedEncKV  map[string][]byte
 	relatedQueryP *[]map[string]interface{}
 	i             int
 }
@@ -222,10 +221,21 @@ func (iState *iState) parseAndEvalSingle(stub shim.ChaincodeStubInterface, uQuer
 		return
 	}
 
-	// fmt.Println("BEST KEY: ", bestKey)
-	kindecesMap, iStateErr := fetchFunc(stub, bestKey)
-
+	fmt.Println("BEST KEY: ", bestKey)
+	kindecesMap, iStateErr := fetchFunc(stub, removeStarFromKey(bestKey))
+	fmt.Println("queryEncodedKVset.eq: ", queryEncodedKVset.eq)
 	evalAndFilterEq(stub, queryEncodedKVset.eq, kindecesMap)
+	evalAndFilterNeq(stub, queryEncodedKVset.neq, kindecesMap)
+	evalAndFilterGt(stub, queryEncodedKVset.gt, kindecesMap)
+	evalAndFilterLt(stub, queryEncodedKVset.lt, kindecesMap)
+	evalAndFilterGte(stub, queryEncodedKVset.gte, kindecesMap)
+	evalAndFilterLte(stub, queryEncodedKVset.lte, kindecesMap)
+	evalAndFilterSeq(stub, queryEncodedKVset.seq, kindecesMap)
+	evalAndFilterSneq(stub, queryEncodedKVset.sneq, kindecesMap)
+	evalAndFilterSgt(stub, queryEncodedKVset.sgt, kindecesMap)
+	evalAndFilterSlt(stub, queryEncodedKVset.slt, kindecesMap)
+	evalAndFilterSgte(stub, queryEncodedKVset.sgte, kindecesMap)
+	evalAndFilterSlte(stub, queryEncodedKVset.slte, kindecesMap)
 
 	// and operation between fields
 
@@ -302,6 +312,20 @@ func convertToRightType(fieldName string, toConvert string, jsonFieldKindMap map
 	return
 }
 
+func decodeScientificNotation(sciNot string) (decoded string, iStateErr Error) {
+	decoded = sciNot
+	// If trying to convert scientific notation to int
+	if strings.Contains(sciNot, "e") {
+		floatVal, err := strconv.ParseFloat(sciNot, 64)
+		if err != nil {
+			iStateErr = NewError(err, 3014)
+			return
+		}
+		decoded = fmt.Sprintf("%.0f", floatVal)
+	}
+	return
+}
+
 func convertToPrimitiveType(toConvert string, kind reflect.Kind) (convertedVal interface{}, iStateErr Error) {
 	// When generating table for query, * need not be converted
 	if toConvert == star {
@@ -317,14 +341,9 @@ func convertToPrimitiveType(toConvert string, kind reflect.Kind) (convertedVal i
 			return
 		}
 	case reflect.Int:
-		// If trying to convert float to int
-		if strings.Contains(toConvert, "e") {
-			floatVal, err := strconv.ParseFloat(toConvert, 64)
-			if err != nil {
-				iStateErr = NewError(err, 3014)
-				return
-			}
-			toConvert = fmt.Sprintf("%.0f", floatVal)
+		toConvert, iStateErr = decodeScientificNotation(toConvert)
+		if iStateErr != nil {
+			return
 		}
 		convertedVal, err = strconv.Atoi(toConvert)
 		if err != nil {
@@ -332,6 +351,10 @@ func convertToPrimitiveType(toConvert string, kind reflect.Kind) (convertedVal i
 			return
 		}
 	case reflect.Int8:
+		toConvert, iStateErr = decodeScientificNotation(toConvert)
+		if iStateErr != nil {
+			return
+		}
 		convertedVal, err = strconv.ParseInt(toConvert, 10, 64)
 		if err != nil {
 			iStateErr = NewError(err, 3012)
@@ -339,6 +362,10 @@ func convertToPrimitiveType(toConvert string, kind reflect.Kind) (convertedVal i
 		}
 		convertedVal = int8(convertedVal.(int64))
 	case reflect.Int16:
+		toConvert, iStateErr = decodeScientificNotation(toConvert)
+		if iStateErr != nil {
+			return
+		}
 		convertedVal, err = strconv.ParseInt(toConvert, 10, 64)
 		if err != nil {
 			iStateErr = NewError(err, 3012)
@@ -346,6 +373,10 @@ func convertToPrimitiveType(toConvert string, kind reflect.Kind) (convertedVal i
 		}
 		convertedVal = int16(convertedVal.(int64))
 	case reflect.Int32:
+		toConvert, iStateErr = decodeScientificNotation(toConvert)
+		if iStateErr != nil {
+			return
+		}
 		convertedVal, err = strconv.ParseInt(toConvert, 10, 64)
 		if err != nil {
 			iStateErr = NewError(err, 3012)
@@ -353,12 +384,20 @@ func convertToPrimitiveType(toConvert string, kind reflect.Kind) (convertedVal i
 		}
 		convertedVal = int32(convertedVal.(int64))
 	case reflect.Int64:
+		toConvert, iStateErr = decodeScientificNotation(toConvert)
+		if iStateErr != nil {
+			return
+		}
 		convertedVal, err = strconv.ParseInt(toConvert, 10, 64)
 		if err != nil {
 			iStateErr = NewError(err, 3012)
 			return
 		}
 	case reflect.Uint:
+		toConvert, iStateErr = decodeScientificNotation(toConvert)
+		if iStateErr != nil {
+			return
+		}
 		convertedVal, err = strconv.ParseUint(toConvert, 10, 64)
 		if err != nil {
 			iStateErr = NewError(err, 3013)
@@ -366,6 +405,10 @@ func convertToPrimitiveType(toConvert string, kind reflect.Kind) (convertedVal i
 		}
 		convertedVal = uint(convertedVal.(uint64))
 	case reflect.Uint8:
+		toConvert, iStateErr = decodeScientificNotation(toConvert)
+		if iStateErr != nil {
+			return
+		}
 		convertedVal, err = strconv.ParseUint(toConvert, 10, 64)
 		if err != nil {
 			iStateErr = NewError(err, 3013)
@@ -373,6 +416,10 @@ func convertToPrimitiveType(toConvert string, kind reflect.Kind) (convertedVal i
 		}
 		convertedVal = uint8(convertedVal.(uint64))
 	case reflect.Uint16:
+		toConvert, iStateErr = decodeScientificNotation(toConvert)
+		if iStateErr != nil {
+			return
+		}
 		convertedVal, err = strconv.ParseUint(toConvert, 10, 64)
 		if err != nil {
 			iStateErr = NewError(err, 3013)
@@ -380,6 +427,10 @@ func convertToPrimitiveType(toConvert string, kind reflect.Kind) (convertedVal i
 		}
 		convertedVal = uint16(convertedVal.(uint64))
 	case reflect.Uint32:
+		toConvert, iStateErr = decodeScientificNotation(toConvert)
+		if iStateErr != nil {
+			return
+		}
 		convertedVal, err = strconv.ParseUint(toConvert, 10, 64)
 		if err != nil {
 			iStateErr = NewError(err, 3013)
@@ -387,6 +438,10 @@ func convertToPrimitiveType(toConvert string, kind reflect.Kind) (convertedVal i
 		}
 		convertedVal = uint32(convertedVal.(uint64))
 	case reflect.Uint64:
+		toConvert, iStateErr = decodeScientificNotation(toConvert)
+		if iStateErr != nil {
+			return
+		}
 		convertedVal, err = strconv.ParseUint(toConvert, 10, 64)
 		if err != nil {
 			iStateErr = NewError(err, 3013)
@@ -414,7 +469,7 @@ func convertToPrimitiveType(toConvert string, kind reflect.Kind) (convertedVal i
 	return
 }
 
-func (iState *iState) getBestEncodedKeyFunc(querySet querys) (encodedKey string, fetchFunc func(shim.ChaincodeStubInterface, string) (map[string]map[string][]byte, Error), encodedKVSet encodedKVs, iStateErr Error) {
+func (iState *iState) getBestEncodedKeyFunc(querySet querys) (bestKey string, fetchFunc func(shim.ChaincodeStubInterface, string) (map[string]map[string][]byte, Error), encodedKVSet encodedKVs, iStateErr Error) {
 	encodedKVSet = encodedKVs{
 		eq:    make(map[string][]byte),
 		neq:   make(map[string][]byte),
@@ -496,18 +551,25 @@ func (iState *iState) getBestEncodedKeyFunc(querySet querys) (encodedKey string,
 	leftNodeVal := tree.LeftValue()
 	switch leftNodeVal == nil {
 	case true:
-		encodedKey = removeStarFromKey(safe.encKey)
+		fmt.Println("Before Query Removal:", *safe.relatedQueryP)
+		bestKey = safe.encKey
 		fetchFunc = safe.fetchFunc
 		beforei := (*safe.relatedQueryP)[:safe.i]
 		afteri := (*safe.relatedQueryP)[safe.i+1:]
 		*safe.relatedQueryP = append(beforei, afteri...)
+		delete(safe.relatedEncKV, bestKey)
+		fmt.Println("After Query Removal:", *safe.relatedQueryP)
 	default:
-		encodedKey = removeStarFromKey(leftNodeVal.(efficientKeyType).enckey)
+
+		bestKey = leftNodeVal.(efficientKeyType).enckey
 		fetchFunc = leftNodeVal.(efficientKeyType).fetchFunc
 		queryP := leftNodeVal.(efficientKeyType).relatedQueryP
+		fmt.Println("Before Query Removal:", *queryP)
 		beforei := (*queryP)[:safe.i]
 		afteri := (*queryP)[safe.i+1:]
 		*queryP = append(beforei, afteri...)
+		delete(leftNodeVal.(efficientKeyType).relatedEncKV, bestKey)
+		fmt.Println("After Query Removal:", *queryP)
 	}
 	return
 }
@@ -516,6 +578,15 @@ func hasLessStars(key1 string, key2 string) (ok bool) {
 	count1 := strings.Count(key1, "*")
 	count2 := strings.Count(key2, "*")
 	if count2 < count1 {
+		ok = true
+	}
+	return
+}
+
+func hasLessOrEqStars(key1 string, key2 string) (ok bool) {
+	count1 := strings.Count(key1, "*")
+	count2 := strings.Count(key2, "*")
+	if count2 <= count1 {
 		ok = true
 	}
 	return
@@ -542,6 +613,7 @@ func (iState *iState) generateEncKeysAndAddToTree(query []map[string]interface{}
 				safe.encKey = index
 				safe.fetchFunc = fetchFunc
 				safe.relatedQueryP = &query
+				safe.relatedEncKV = encKVMap
 				safe.i = i
 			}
 		}

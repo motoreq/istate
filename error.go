@@ -46,6 +46,7 @@ var errorCodes = map[int]string{
 	2014: "findMapDifference: Only map kind is expected, Received: %v %v",
 	2015: "traverseAndGenerateRelationalTable: currentdepth: %v, not found in depthKindMap",
 	2016: "traverseAndGenerateRelationalTable: Cannot find Kind for convertToPrimitiveType",
+	2017: "numSign: Invalid number encoding",
 
 	// Query
 	3001: "Query: Marshal Error:",
@@ -74,6 +75,7 @@ var errorCodes = map[int]string{
 	4003: "getKeyByRange: Iterator.Next()",
 	4004: "unmarshalToStruct",
 	4005: "getEncMap: Unmarshal error",
+	4006: "loadKeyByRange: Iterator.Next()",
 
 	// Index utils
 	5001: "fetchCompactIndex: GetState Error",

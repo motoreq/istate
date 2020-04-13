@@ -11,7 +11,12 @@
 	that may take extra storage space.
 
 	Restrictions:
-		- Cannot use
+		- Cannot use the following ascii characters in the struct names or field values:
+			- "\000"
+			- "\001"
+			- "\002"
+			- "~" (or) "\176"
+			- "\177"
 
 	Known Limitations and Issues:
 
@@ -25,6 +30,8 @@
 package istate
 
 // Debts:
+// Encryption support?
+// Clean errors / error.go
 // 1. Include data in index as optional
 // 2. Options to activate / deactivate / load cache
 // 3. Protobuf
