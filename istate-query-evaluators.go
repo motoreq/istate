@@ -43,8 +43,14 @@ func evalAndFilterLte(stub shim.ChaincodeStubInterface, encQKeyVal map[string][]
 	}
 }
 
-func evalAndFilterCmplx(stub shim.ChaincodeStubInterface, query map[string]interface{}) {
-
+func (iState *iState) evalAndFilterCmplx(stub shim.ChaincodeStubInterface, encQKeyVal map[string][]byte, keyEncKVMap map[string]map[string][]byte) (iStateErr Error) {
+	for encKeyWithStar := range encQKeyVal {
+		iStateErr = filter(keyEncKVMap, removeStarFromKey(encKeyWithStar), iState.evalCmplx)
+		if iStateErr != nil {
+			return
+		}
+	}
+	return
 }
 
 func evalAndFilterSeq(stub shim.ChaincodeStubInterface, encQKeyVal map[string][]byte, keyEncKVMap map[string]map[string][]byte) {
@@ -83,27 +89,29 @@ func evalAndFilterSlte(stub shim.ChaincodeStubInterface, encQKeyVal map[string][
 	}
 }
 
-func evaluateAndFilterScmplx(stub shim.ChaincodeStubInterface, query map[string]interface{}) {
-
-}
-
 // keyRefSeparated index only expected
-func filter(keyEncKVMap map[string]map[string][]byte, encQKey string, evalFunc func(string, map[string][]byte) bool) {
+func filter(keyEncKVMap map[string]map[string][]byte, encQKey string, evalFunc func(string, map[string][]byte) (bool, Error)) (iStateErr Error) {
 	for key, encKV := range keyEncKVMap {
-		if !evalFunc(encQKey, encKV) {
+		var ok bool
+		ok, iStateErr = evalFunc(encQKey, encKV)
+		if iStateErr != nil {
+			return
+		}
+		if !ok {
 			delete(keyEncKVMap, key)
 		}
 	}
+	return
 }
 
 // Evaluators:
 
-func evalEq(encQKey string, encKV map[string][]byte) (found bool) {
+func evalEq(encQKey string, encKV map[string][]byte) (found bool, iState Error) {
 	_, found = encKV[encQKey]
 	return
 }
 
-func evalNeq(encQKey string, encKV map[string][]byte) (ok bool) {
+func evalNeq(encQKey string, encKV map[string][]byte) (ok bool, iState Error) {
 	qpartIndex, _ := removeNValsFromIndex(encQKey, 2)
 	for index := range encKV {
 		// If this is the field
@@ -117,7 +125,7 @@ func evalNeq(encQKey string, encKV map[string][]byte) (ok bool) {
 	return
 }
 
-func evalGt(encQKey string, encKV map[string][]byte) (ok bool) {
+func evalGt(encQKey string, encKV map[string][]byte) (ok bool, iState Error) {
 	qpartIndex, qremovedVals := removeNValsFromIndex(encQKey, 2)
 	switch isNum(qremovedVals[1]) {
 	case true:
@@ -165,7 +173,7 @@ func evalGt(encQKey string, encKV map[string][]byte) (ok bool) {
 	return
 }
 
-func evalLt(encQKey string, encKV map[string][]byte) (ok bool) {
+func evalLt(encQKey string, encKV map[string][]byte) (ok bool, iState Error) {
 	qpartIndex, qremovedVals := removeNValsFromIndex(encQKey, 2)
 	switch isNum(qremovedVals[1]) {
 	case true:
@@ -213,7 +221,7 @@ func evalLt(encQKey string, encKV map[string][]byte) (ok bool) {
 	return
 }
 
-func evalGte(encQKey string, encKV map[string][]byte) (ok bool) {
+func evalGte(encQKey string, encKV map[string][]byte) (ok bool, iState Error) {
 	qpartIndex, qremovedVals := removeNValsFromIndex(encQKey, 2)
 	switch isNum(qremovedVals[1]) {
 	case true:
@@ -261,7 +269,7 @@ func evalGte(encQKey string, encKV map[string][]byte) (ok bool) {
 	return
 }
 
-func evalLte(encQKey string, encKV map[string][]byte) (ok bool) {
+func evalLte(encQKey string, encKV map[string][]byte) (ok bool, iState Error) {
 	qpartIndex, qremovedVals := removeNValsFromIndex(encQKey, 2)
 	switch isNum(qremovedVals[1]) {
 	case true:
@@ -310,7 +318,7 @@ func evalLte(encQKey string, encKV map[string][]byte) (ok bool) {
 }
 
 //
-func evalSeq(encQKey string, encKV map[string][]byte) (match bool) {
+func evalSeq(encQKey string, encKV map[string][]byte) (match bool, iState Error) {
 	// Remove those which has neq 1
 	_, ok := encKV[encQKey]
 	if !ok {
@@ -334,7 +342,7 @@ func evalSeq(encQKey string, encKV map[string][]byte) (match bool) {
 	return
 }
 
-func evalSneq(encQKey string, encKV map[string][]byte) (match bool) {
+func evalSneq(encQKey string, encKV map[string][]byte) (match bool, iState Error) {
 	// Remove those which has eq 1
 	_, ok := encKV[encQKey]
 	if ok {
@@ -358,43 +366,62 @@ func evalSneq(encQKey string, encKV map[string][]byte) (match bool) {
 	return
 }
 
-func evalSgt(encQKey string, encKV map[string][]byte) (match bool) {
-	blackListFound := evalLte(encQKey, encKV)
+func evalSgt(encQKey string, encKV map[string][]byte) (match bool, iState Error) {
+	blackListFound, _ := evalLte(encQKey, encKV)
 	if blackListFound {
 		match = false
 		return
 	}
 
-	match = evalGt(encQKey, encKV)
+	match, _ = evalGt(encQKey, encKV)
 	return
 }
-func evalSlt(encQKey string, encKV map[string][]byte) (match bool) {
-	blackListFound := evalGte(encQKey, encKV)
+func evalSlt(encQKey string, encKV map[string][]byte) (match bool, iState Error) {
+	blackListFound, _ := evalGte(encQKey, encKV)
 	if blackListFound {
 		match = false
 		return
 	}
 
-	match = evalLt(encQKey, encKV)
+	match, _ = evalLt(encQKey, encKV)
 	return
 }
-func evalSgte(encQKey string, encKV map[string][]byte) (match bool) {
-	blackListFound := evalLt(encQKey, encKV)
+func evalSgte(encQKey string, encKV map[string][]byte) (match bool, iState Error) {
+	blackListFound, _ := evalLt(encQKey, encKV)
 	if blackListFound {
 		match = false
 		return
 	}
 
-	match = evalGte(encQKey, encKV)
+	match, _ = evalGte(encQKey, encKV)
 	return
 }
-func evalSlte(encQKey string, encKV map[string][]byte) (match bool) {
-	blackListFound := evalGt(encQKey, encKV)
+func evalSlte(encQKey string, encKV map[string][]byte) (match bool, iState Error) {
+	blackListFound, _ := evalGt(encQKey, encKV)
 	if blackListFound {
 		match = false
 		return
 	}
 
-	match = evalLte(encQKey, encKV)
+	match, _ = evalLte(encQKey, encKV)
+	return
+}
+func (iState *iState) evalCmplx(encQKey string, encKV map[string][]byte) (match bool, iStateErr Error) {
+
+	partIndex, removedVals := removeNValsFromIndex(encQKey, 2)
+
+	partIndexRemovedSeparator := removeLastSeparator(partIndex)
+
+	fieldName := iState.convertIndexToQueryFieldName(partIndexRemovedSeparator)
+	// Get Type of val
+	kind, iStateErr := getRightPrimitiveType(fieldName, iState.jsonFieldKindMap, iState.mapKeyKindMap)
+	if iStateErr != nil {
+		return
+	}
+
+	match, iStateErr = iState.parseCmplxAndEval(partIndex, removedVals[1], kind, encKV)
+	if iStateErr != nil {
+		return
+	}
 	return
 }

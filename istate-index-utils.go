@@ -57,21 +57,6 @@ func addKeyWithoutOverLap(query []map[string]interface{}, index string, value in
 	return
 }
 
-func dotsToActualDepth(splitFieldName []string, val interface{}, curIndex ...int) (actualMap map[string]interface{}) {
-	actualMap = make(map[string]interface{})
-	if len(curIndex) == 0 {
-		curIndex = []int{0}
-	}
-
-	if len(splitFieldName)-1 > curIndex[0] {
-		actualMap[splitFieldName[curIndex[0]]] = dotsToActualDepth(splitFieldName, val, curIndex[0]+1)
-	} else {
-		actualMap[splitFieldName[curIndex[0]]] = val
-	}
-
-	return
-}
-
 func fetchCompactIndex(stub shim.ChaincodeStubInterface, key string) (val compactIndexV, iStateErr Error) {
 	valBytes, err := stub.GetState(key)
 	if err != nil {
@@ -178,5 +163,26 @@ func getIndexPermVal(vals []string, permString string, isQuery bool) (permVal st
 	}
 	// Remove last seperator
 	permVal = permVal[:len(permVal)-len(seperator)]
+	return
+}
+
+func removeNValsFromIndex(index string, n int) (partIndex string, removedVals []string) {
+	partIndex = index
+	removedVals = make([]string, n, n)
+	seperatorLen := len(seperator)
+	for i := 0; i < n; i++ {
+		lastIndex := strings.LastIndex(partIndex, seperator)
+		if lastIndex == -1 {
+			return
+		}
+		switch lastIndex+seperatorLen >= len(partIndex) {
+		case true:
+			removedVals[i] = ""
+		default:
+			removedVals[i] = partIndex[lastIndex+seperatorLen:] // separator + null == 2 chars
+		}
+		partIndex = partIndex[:lastIndex]
+	}
+	partIndex = partIndex + seperator
 	return
 }

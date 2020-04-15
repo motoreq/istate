@@ -3,8 +3,12 @@
 package istate
 
 import (
+	"encoding/json"
 	"fmt"
+	"github.com/emirpasic/gods/trees/btree"
+	"github.com/hyperledger/fabric/core/chaincode/shim"
 	"reflect"
+	"strconv"
 	"strings"
 )
 
@@ -77,13 +81,11 @@ func (iState *iState) traverseAndGenerateRelationalTable(val interface{}, tableN
 			newRow[keyRefField] = keyref
 			currentDepth := joinStringInterfaceSliceWithDotStar(append([]interface{}{jsonTag}, tableName[1:]...))
 			newRow[fieldNameField] = currentDepth
-			// fmt.Printf("1 ADVANCED COUNTER: CURRENT DEPTH KEY: %v, For Row: %v\n", currentDepth, newRow)
 			newTable = append(newTable, newRow)
 		}
 	case reflect.Map:
 		mapKeys := reflect.ValueOf(val).MapKeys()
 		currentDepth := joinStringInterfaceSlice(append([]interface{}{jsonTag}, genericTableName...), seperator) + seperator
-		// fmt.Println("SEARCHED CURRENT DEPTH: ", currentDepth)
 
 		for i := 0; i < len(mapKeys); i++ {
 			var nextInitialTableName []interface{}
@@ -97,21 +99,10 @@ func (iState *iState) traverseAndGenerateRelationalTable(val interface{}, tableN
 				}
 				nextInitialTableName = append(genericTableName, "")
 				switch {
-				// case meta[0].(int) > 0 && !isQuery:
-				// 	newRow := make(map[string]interface{})
-				// 	newGenericTableName := []interface{}{iStateTag}
-				// 	newRow[docTypeField] = append(newGenericTableName, genericTableName...)
-				// 	newRow[valueField] = convertedMapKey
-				// 	newRow[keyRefField] = keyref
-				// 	currentDepth := joinStringInterfaceSliceWithDotStar(append([]interface{}{jsonTag}, genericTableName...))
-				// 	newRow[fieldNameField] = currentDepth
-				// 	// fmt.Printf("2.1 ADVANCED COUNTER: CURRENT DEPTH KEY: %v, For Row: %v\n", currentDepth, newRow)
-				// 	newTable = append(newTable, newRow)
 				default:
 					newRow := make(map[string]interface{})
 					currentDepth := joinStringInterfaceSliceWithDotStar(append([]interface{}{jsonTag}, genericTableName...))
 					newRow[fieldNameField] = currentDepth
-					// fmt.Printf("2.2 ADVANCED COUNTER: CURRENT DEPTH KEY: %v, For Row: %v\n", currentDepth, newRow)
 					newTable = append(newTable, newRow)
 				}
 			default:
@@ -140,9 +131,6 @@ func (iState *iState) traverseAndGenerateRelationalTable(val interface{}, tableN
 			newRow[docTypeField] = tableName
 			newRow[valueField] = ""
 			newRow[keyRefField] = keyref
-			// currentDepth := joinStringInterfaceSliceWithDotStar(append([]interface{}{jsonTag}, tableName[1:]...))
-			//newRow[fieldNameField] = currentDepth
-			// fmt.Printf("3 ADVANCED COUNTER: CURRENT DEPTH KEY: %v, For Row: %v\n", currentDepth, newRow)
 			newTable = append(newTable, newRow)
 		}
 	default:
@@ -153,55 +141,22 @@ func (iState *iState) traverseAndGenerateRelationalTable(val interface{}, tableN
 		var currentDepth string
 		newGenericTableName := []interface{}{iStateTag}
 		newGenericTableName = append(newGenericTableName, meta[1].([]interface{})...)
-
-		// newGenericTableNameString := joinStringInterfaceSlice(newGenericTableName, seperator) // Here genericPrefix is not taken, as "_" will be added when encoding.
-		// // Making inner elements searchable
-		// tableNameString := joinStringInterfaceSlice(tableName, seperator)
-		// addedGenericRow := false
-		// if meta[0].(int) > 0 && newGenericTableNameString != tableNameString && !isQuery {
-		// 	currentDepthStar = joinStringInterfaceSliceWithDotStar(append([]interface{}{jsonTag}, genericTableName...))
-		// 	currentDepth = joinStringInterfaceSlice(append([]interface{}{jsonTag}, genericTableName...), seperator) //+ seperator
-		// 	kind, ok := iState.depthKindMap[currentDepth]
-		// 	if !ok {
-		// 		// fmt.Println("CURRENT DEPTH BEFORE ERROR:", currentDepth)
-		// 		iStateErr = NewError(nil, 2016)
-		// 		return
-		// 	}
-		// 	valAsString := fmt.Sprintf("%v", reflect.ValueOf(val).Interface())
-		// 	var convertedVal interface{}
-		// 	convertedVal, iStateErr = convertToPrimitiveType(valAsString, kind)
-		// 	if iStateErr != nil {
-		// 		// fmt.Println("ERROR IS FROM 1")
-		// 		return
-		// 	}
-		// 	newRow := make(map[string]interface{})
-		// 	newRow[docTypeField] = newGenericTableName
-		// 	newRow[valueField] = convertedVal
-		// 	newRow[keyRefField] = keyref
-		// 	newRow[fieldNameField] = currentDepthStar
-		// 	// fmt.Printf("4 ADVANCED COUNTER: CURRENT DEPTH KEY: %v, For Row: %v\n", currentDepth, newRow)
-		// 	newTable = append(newTable, newRow)
-		// 	addedGenericRow = true
-		// }
-
 		newRow := make(map[string]interface{})
 		switch !isQuery {
 		case true: //&& !addedGenericRow:
 
 			currentDepthStar = joinStringInterfaceSliceWithDotStar(append([]interface{}{jsonTag}, tableName[1:]...))
-			currentDepth = joinStringInterfaceSlice(append([]interface{}{jsonTag}, tableName[1:]...), seperator) //+ seperator
-			// fmt.Println("NO QUERY", currentDepth)
+			currentDepth = joinStringInterfaceSlice(append([]interface{}{jsonTag}, tableName[1:]...), seperator)
 			newRow[fieldNameField] = currentDepthStar
 
 			kind, ok := iState.depthKindMap[currentDepth]
 			// Newly added
 			if !ok {
-				currentDepth = joinStringInterfaceSlice(append([]interface{}{jsonTag}, genericTableName...), seperator) //+ seperator
+				currentDepth = joinStringInterfaceSlice(append([]interface{}{jsonTag}, genericTableName...), seperator)
 				kind, ok = iState.depthKindMap[currentDepth]
 			}
 			// Newly added end
 			if !ok {
-				// fmt.Println("CURRENT DEPTH BEFORE ERROR:", currentDepth)
 				iStateErr = NewError(nil, 2016)
 				return
 			}
@@ -209,18 +164,15 @@ func (iState *iState) traverseAndGenerateRelationalTable(val interface{}, tableN
 			var convertedVal interface{}
 			convertedVal, iStateErr = convertToPrimitiveType(valAsString, kind)
 			if iStateErr != nil {
-				// fmt.Println("ERROR IS FROM 2")
 				return
 			}
 			newRow[docTypeField] = tableName
 			newRow[valueField] = convertedVal
 			newRow[keyRefField] = keyref
-			// fmt.Printf("5 ADVANCED COUNTER: CURRENT DEPTH KEY: %v, For Row: %v\n", currentDepth, newRow)
 		default:
 
 			currentDepthStar = joinStringInterfaceSliceWithDotStar(append([]interface{}{jsonTag}, genericTableName...))
-			currentDepth = joinStringInterfaceSlice(append([]interface{}{jsonTag}, genericTableName...), seperator) //+ seperator
-			fmt.Println("YES QUERY", currentDepthStar)
+			currentDepth = joinStringInterfaceSlice(append([]interface{}{jsonTag}, genericTableName...), seperator)
 			newRow[fieldNameField] = currentDepthStar
 			newRow[docTypeField] = tableName
 			newRow[valueField] = reflect.ValueOf(val).Interface()
@@ -335,8 +287,6 @@ func (iState *iState) encodeState(oMap map[string]interface{}, keyref string, ha
 		}
 	}
 
-	fmt.Println("Final encodedKeyValPairs: ", encodedKeyValPairs)
-
 	return
 }
 
@@ -399,11 +349,6 @@ func encode(value interface{}) (encodedVal string, iStateErr Error, isNum bool) 
 		iStateErr = NewError(nil, 2005, kind)
 		return
 	}
-	return
-}
-
-func decodeNumber(encodedVal string) (decodedVal float64, iStateErr Error) {
-	// sign := encodedVal[0]
 	return
 }
 
@@ -878,6 +823,27 @@ func joinStringInterfaceSliceWithDotStar(slice []interface{}) (joinedString stri
 	return
 }
 
+func (iState *iState) convertIndexToQueryFieldName(index string) (joinedString string) {
+	splitFields := strings.Split(index, seperator)
+	if len(splitFields) > 0 {
+		var ok bool
+		joinedString, ok = iState.istateJSONMap[splitFields[0]]
+		if !ok {
+			// Not supposed to happen
+			panic(fmt.Sprintf("istate tag not found in istateJSONMap: %v", splitFields[0]))
+		}
+	}
+	for i := 1; i < len(splitFields); i++ {
+		switch splitFields[i] == "" {
+		case true:
+			joinedString += dot + star
+		default:
+			joinedString += dot + splitFields[i]
+		}
+	}
+	return
+}
+
 func initQueryEnv(qEnv *queryEnv) {
 	qEnv.ufetchedKVMap = make(map[string][]byte)
 	qEnv.uindecesMap = make(map[string]map[string][]byte)
@@ -890,6 +856,235 @@ func removeLastSeparator(key string) (outKey string) {
 		if key[len(key)-1] == seperator[0] { // separator[0] is '_' (not "_")
 			outKey = key[:len(key)-1]
 		}
+	}
+	return
+}
+
+func (iState *iState) generateActualStructure(field string, convertedVal interface{}) (newField string, newVal interface{}, iStateErr Error) {
+
+	// Dot to Map
+	splitfield := strings.Split(field, splitDot)
+	switch len(splitfield) > 1 {
+	case true:
+		newField = splitfield[0]
+		newVal = dotsToActualDepth(splitfield[1:], convertedVal)
+	default:
+		newField = field
+		newVal = convertedVal
+	}
+	return
+}
+
+func decodeScientificNotation(sciNot string) (decoded string, iStateErr Error) {
+	decoded = sciNot
+	// If trying to convert scientific notation to int
+	if strings.Contains(sciNot, "e") {
+		floatVal, err := strconv.ParseFloat(sciNot, 64)
+		if err != nil {
+			iStateErr = NewError(err, 3014)
+			return
+		}
+		decoded = fmt.Sprintf("%.0f", floatVal)
+	}
+	return
+}
+
+func (iState *iState) getBestEncodedKeyFunc(querySet querys) (bestKey string, fetchFunc func(shim.ChaincodeStubInterface, string, string) (map[string]map[string][]byte, Error), encodedKVSet encodedKVs, iStateErr Error) {
+	encodedKVSet = encodedKVs{
+		eq:    make(map[string][]byte),
+		neq:   make(map[string][]byte),
+		gt:    make(map[string][]byte),
+		lt:    make(map[string][]byte),
+		gte:   make(map[string][]byte),
+		lte:   make(map[string][]byte),
+		cmplx: make(map[string][]byte),
+
+		seq:  make(map[string][]byte),
+		sneq: make(map[string][]byte),
+		sgt:  make(map[string][]byte),
+		slt:  make(map[string][]byte),
+		sgte: make(map[string][]byte),
+		slte: make(map[string][]byte),
+		// scmplx: make(map[string][]byte),
+	}
+
+	tree := btree.NewWithIntComparator(3)
+	safe := &safeKeyFunc{}
+	iStateErr = iState.generateEncKeysAndAddToTree(querySet.eq, encodedKVSet.eq, iState.fetchEq, tree, safe)
+	if iStateErr != nil {
+		return
+	}
+	iStateErr = iState.generateEncKeysAndAddToTree(querySet.neq, encodedKVSet.neq, iState.fetchNeq, tree, safe)
+	if iStateErr != nil {
+		return
+	}
+	iStateErr = iState.generateEncKeysAndAddToTree(querySet.gt, encodedKVSet.gt, iState.fetchGt, tree, safe)
+	if iStateErr != nil {
+		return
+	}
+	iStateErr = iState.generateEncKeysAndAddToTree(querySet.lt, encodedKVSet.lt, iState.fetchLt, tree, safe)
+	if iStateErr != nil {
+		return
+	}
+	iStateErr = iState.generateEncKeysAndAddToTree(querySet.gte, encodedKVSet.gte, iState.fetchGte, tree, safe)
+	if iStateErr != nil {
+		return
+	}
+	iStateErr = iState.generateEncKeysAndAddToTree(querySet.lte, encodedKVSet.lte, iState.fetchLte, tree, safe)
+	if iStateErr != nil {
+		return
+	}
+	iStateErr = iState.generateEncKeysAndAddToTree(querySet.cmplx, encodedKVSet.cmplx, iState.fetchCmplx, tree, safe)
+	if iStateErr != nil {
+		return
+	}
+
+	iStateErr = iState.generateEncKeysAndAddToTree(querySet.seq, encodedKVSet.seq, iState.fetchSeq, tree, safe)
+	if iStateErr != nil {
+		return
+	}
+	iStateErr = iState.generateEncKeysAndAddToTree(querySet.sneq, encodedKVSet.sneq, iState.fetchSneq, tree, safe)
+	if iStateErr != nil {
+		return
+	}
+	iStateErr = iState.generateEncKeysAndAddToTree(querySet.sgt, encodedKVSet.sgt, iState.fetchSgt, tree, safe)
+	if iStateErr != nil {
+		return
+	}
+	iStateErr = iState.generateEncKeysAndAddToTree(querySet.slt, encodedKVSet.slt, iState.fetchSlt, tree, safe)
+	if iStateErr != nil {
+		return
+	}
+	iStateErr = iState.generateEncKeysAndAddToTree(querySet.sgte, encodedKVSet.sgte, iState.fetchSgte, tree, safe)
+	if iStateErr != nil {
+		return
+	}
+	iStateErr = iState.generateEncKeysAndAddToTree(querySet.slte, encodedKVSet.slte, iState.fetchSlte, tree, safe)
+	if iStateErr != nil {
+		return
+	}
+	// iStateErr = iState.generateEncKeysAndAddToTree(querySet.scmplx, encodedKVSet.scmplx, iState.fetchSlte, tree, safe)
+	// if iStateErr != nil {
+	// 	return
+	// }
+
+	leftNodeVal := tree.LeftValue()
+	switch leftNodeVal == nil {
+	case true:
+		bestKey = safe.encKey
+		fetchFunc = safe.fetchFunc
+		beforei := (*safe.relatedQueryP)[:safe.i]
+		afteri := (*safe.relatedQueryP)[safe.i+1:]
+		*safe.relatedQueryP = append(beforei, afteri...)
+		delete(safe.relatedEncKV, bestKey)
+	default:
+
+		bestKey = leftNodeVal.(efficientKeyType).enckey
+		fetchFunc = leftNodeVal.(efficientKeyType).fetchFunc
+		queryP := leftNodeVal.(efficientKeyType).relatedQueryP
+		beforei := (*queryP)[:safe.i]
+		afteri := (*queryP)[safe.i+1:]
+		*queryP = append(beforei, afteri...)
+		delete(leftNodeVal.(efficientKeyType).relatedEncKV, bestKey)
+	}
+	return
+}
+
+func hasLessStars(key1 string, key2 string) (ok bool) {
+	count1 := strings.Count(key1, "*")
+	count2 := strings.Count(key2, "*")
+	if count2 < count1 {
+		ok = true
+	}
+	return
+}
+
+func hasLessOrEqStars(key1 string, key2 string) (ok bool) {
+	count1 := strings.Count(key1, "*")
+	count2 := strings.Count(key2, "*")
+	if count2 <= count1 {
+		ok = true
+	}
+	return
+}
+
+func (iState *iState) generateEncKeysAndAddToTree(query []map[string]interface{}, encKVMap map[string][]byte, fetchFunc func(shim.ChaincodeStubInterface, string, string) (map[string]map[string][]byte, Error), tree *btree.Tree, safe *safeKeyFunc) (iStateErr Error) {
+	keyref := ""
+	for i := 0; i < len(query); i++ {
+		var encKeyDocNameMap map[string]string
+		var encodedKeyVal map[string][]byte
+		encodedKeyVal, _, encKeyDocNameMap, iStateErr = iState.encodeState(query[i], keyref, "", 1, true) // separation: 1, isQuery: true
+		if iStateErr != nil {
+			return
+		}
+		for index, val := range encodedKeyVal {
+
+			genericField := encKeyDocNameMap[index]
+			if numDocs, ok := iState.readDocsCounter(genericField); ok {
+				addToTree(tree, index, genericField, numDocs, fetchFunc, encKVMap, &query, i)
+			}
+
+			encKVMap[index] = val
+			if safe.fetchFunc == nil {
+				safe.encKey = index
+				safe.fetchFunc = fetchFunc
+				safe.relatedQueryP = &query
+				safe.relatedEncKV = encKVMap
+				safe.i = i
+			}
+		}
+	}
+	return
+}
+
+func addToTree(tree *btree.Tree, encKey string, genericField string, numDocs int, fetchFunc func(shim.ChaincodeStubInterface, string, string) (map[string]map[string][]byte, Error), relatedEncKV map[string][]byte, relatedQueryP *[]map[string]interface{}, i int) {
+	efficientKey := efficientKeyType{
+		enckey:        encKey,
+		genericField:  genericField,
+		fetchFunc:     fetchFunc,
+		relatedEncKV:  relatedEncKV,
+		relatedQueryP: relatedQueryP,
+		i:             i,
+	}
+	switch val, ok := tree.Get(numDocs); ok {
+	case true:
+		if ok := hasLessStars(val.(efficientKeyType).enckey, efficientKey.enckey); ok {
+			tree.Put(numDocs, efficientKey)
+		}
+	default:
+		tree.Put(numDocs, efficientKey)
+	}
+}
+
+// Clean this...
+func generateistateJSONMap(obj interface{}, fieldJSONIndexMap map[string]int) (istateJSONMap map[string]string, iStateErr Error) {
+	// iStateLogger.Debugf("Inside generateRelationalTables")
+	// defer iStateLogger.Debugf("Exiting generateRelationalTables")
+	istateJSONMap = make(map[string]string)
+	var objMap map[string]interface{}
+	mo, err := json.Marshal(obj)
+	if err != nil {
+		iStateErr = NewError(err, 2018)
+		return
+	}
+	err = json.Unmarshal(mo, &objMap)
+	if err != nil {
+		iStateErr = NewError(err, 2019)
+		return
+	}
+
+	for index := range objMap {
+		field := reflect.TypeOf(obj).Field(fieldJSONIndexMap[index])
+		istateTag := field.Tag.Get(iStateTag)
+		if istateTag == "" {
+			continue
+		}
+		jsonTag := field.Tag.Get("json")
+		if jsonTag == "" {
+			iStateErr = NewError(nil, 2001, field.Name, reflect.TypeOf(obj))
+			return
+		}
+		istateJSONMap[istateTag] = jsonTag
 	}
 	return
 }

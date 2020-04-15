@@ -6,7 +6,8 @@ import (
 	"github.com/hyperledger/fabric/core/chaincode/shim"
 )
 
-func (iState *iState) fetchEq(stub shim.ChaincodeStubInterface, encodedKey string) (kindecesMap map[string]map[string][]byte, iStateErr Error) {
+// Cleanup -> stub is in meta data
+func (iState *iState) fetchEq(stub shim.ChaincodeStubInterface, encodedKey string, fieldName string) (kindecesMap map[string]map[string][]byte, iStateErr Error) {
 	kindecesMap = make(map[string]map[string][]byte)
 	start := encodedKey
 	end := encodedKey + asciiLast
@@ -17,7 +18,7 @@ func (iState *iState) fetchEq(stub shim.ChaincodeStubInterface, encodedKey strin
 	return
 }
 
-func (iState *iState) fetchNeq(stub shim.ChaincodeStubInterface, encodedKey string) (kindecesMap map[string]map[string][]byte, iStateErr Error) {
+func (iState *iState) fetchNeq(stub shim.ChaincodeStubInterface, encodedKey string, fieldName string) (kindecesMap map[string]map[string][]byte, iStateErr Error) {
 	kindecesMap = make(map[string]map[string][]byte)
 	partIndex, removedVals := removeNValsFromIndex(encodedKey, 2)
 	start1 := partIndex
@@ -37,7 +38,7 @@ func (iState *iState) fetchNeq(stub shim.ChaincodeStubInterface, encodedKey stri
 	return
 }
 
-func (iState *iState) fetchGt(stub shim.ChaincodeStubInterface, encodedKey string) (kindecesMap map[string]map[string][]byte, iStateErr Error) {
+func (iState *iState) fetchGt(stub shim.ChaincodeStubInterface, encodedKey string, fieldName string) (kindecesMap map[string]map[string][]byte, iStateErr Error) {
 	kindecesMap = make(map[string]map[string][]byte)
 	partIndex, removedVals := removeNValsFromIndex(encodedKey, 2)
 	switch isNum(removedVals[1]) {
@@ -84,7 +85,7 @@ func (iState *iState) fetchGt(stub shim.ChaincodeStubInterface, encodedKey strin
 	return
 }
 
-func (iState *iState) fetchLt(stub shim.ChaincodeStubInterface, encodedKey string) (kindecesMap map[string]map[string][]byte, iStateErr Error) {
+func (iState *iState) fetchLt(stub shim.ChaincodeStubInterface, encodedKey string, fieldName string) (kindecesMap map[string]map[string][]byte, iStateErr Error) {
 	kindecesMap = make(map[string]map[string][]byte)
 	partIndex, removedVals := removeNValsFromIndex(encodedKey, 2)
 	switch isNum(removedVals[1]) {
@@ -133,7 +134,7 @@ func (iState *iState) fetchLt(stub shim.ChaincodeStubInterface, encodedKey strin
 
 }
 
-func (iState *iState) fetchGte(stub shim.ChaincodeStubInterface, encodedKey string) (kindecesMap map[string]map[string][]byte, iStateErr Error) {
+func (iState *iState) fetchGte(stub shim.ChaincodeStubInterface, encodedKey string, fieldName string) (kindecesMap map[string]map[string][]byte, iStateErr Error) {
 	kindecesMap = make(map[string]map[string][]byte)
 	partIndex, removedVals := removeNValsFromIndex(encodedKey, 2)
 	switch isNum(removedVals[1]) {
@@ -180,7 +181,7 @@ func (iState *iState) fetchGte(stub shim.ChaincodeStubInterface, encodedKey stri
 	return
 }
 
-func (iState *iState) fetchLte(stub shim.ChaincodeStubInterface, encodedKey string) (kindecesMap map[string]map[string][]byte, iStateErr Error) {
+func (iState *iState) fetchLte(stub shim.ChaincodeStubInterface, encodedKey string, fieldName string) (kindecesMap map[string]map[string][]byte, iStateErr Error) {
 	kindecesMap = make(map[string]map[string][]byte)
 	partIndex, removedVals := removeNValsFromIndex(encodedKey, 2)
 	switch isNum(removedVals[1]) {
@@ -228,13 +229,24 @@ func (iState *iState) fetchLte(stub shim.ChaincodeStubInterface, encodedKey stri
 	return
 }
 
-func (iState *iState) fetchCmplx(stub shim.ChaincodeStubInterface, encodedKey string) (kindecesMap map[string]map[string][]byte, iStateErr Error) {
-	start := encodedKey
-	end := encodedKey + asciiLast
-	iStateErr = iState.getStateByRange(stub, start, end, kindecesMap)
+func (iState *iState) fetchCmplx(stub shim.ChaincodeStubInterface, encodedKey string, fieldName string) (kindecesMap map[string]map[string][]byte, iStateErr Error) {
+	kindecesMap = make(map[string]map[string][]byte)
+	partIndex, removedVals := removeNValsFromIndex(encodedKey, 2)
+
+	partIndexRemovedSeparator := removeLastSeparator(partIndex)
+
+	fieldName = iState.convertIndexToQueryFieldName(partIndexRemovedSeparator)
+	// Get Type of val
+	kind, iStateErr := getRightPrimitiveType(fieldName, iState.jsonFieldKindMap, iState.mapKeyKindMap)
 	if iStateErr != nil {
 		return
 	}
+
+	kindecesMap, iStateErr = iState.parseCmplxAndFetch(partIndex, removedVals[1], kind)
+	if iStateErr != nil {
+		return
+	}
+
 	return
 }
 
@@ -345,6 +357,7 @@ func loadFetchedKV(stub shim.ChaincodeStubInterface, fetchedKVMap map[string][]b
 	return
 }
 func (iState *iState) loadkindecesMap(stub shim.ChaincodeStubInterface, kindecesMap map[string]map[string][]byte, keyRef string, newHash string) (iStateErr Error) {
+	// Hash validation for cache consistency
 	hashString, iStateErr := iState.getkvHash(keyRef)
 	if iStateErr != nil {
 		return

@@ -6,7 +6,7 @@ import (
 	"github.com/hyperledger/fabric/core/chaincode/shim"
 )
 
-func (iState *iState) fetchSeq(stub shim.ChaincodeStubInterface, encodedKey string) (kindecesMap map[string]map[string][]byte, iStateErr Error) {
+func (iState *iState) fetchSeq(stub shim.ChaincodeStubInterface, encodedKey string, fieldName string) (kindecesMap map[string]map[string][]byte, iStateErr Error) {
 
 	// Get Blacklisted Keys:
 	blackList, iStateErr := fetchSeqBlackList(stub, encodedKey)
@@ -25,7 +25,7 @@ func (iState *iState) fetchSeq(stub shim.ChaincodeStubInterface, encodedKey stri
 	return
 }
 
-func (iState *iState) fetchSneq(stub shim.ChaincodeStubInterface, encodedKey string) (kindecesMap map[string]map[string][]byte, iStateErr Error) {
+func (iState *iState) fetchSneq(stub shim.ChaincodeStubInterface, encodedKey string, fieldName string) (kindecesMap map[string]map[string][]byte, iStateErr Error) {
 	// Get Blacklisted Keys:
 	blackList, iStateErr := fetchSneqBlackList(stub, encodedKey)
 	if iStateErr != nil {
@@ -52,7 +52,7 @@ func (iState *iState) fetchSneq(stub shim.ChaincodeStubInterface, encodedKey str
 	return
 }
 
-func (iState *iState) fetchSgt(stub shim.ChaincodeStubInterface, encodedKey string) (kindecesMap map[string]map[string][]byte, iStateErr Error) {
+func (iState *iState) fetchSgt(stub shim.ChaincodeStubInterface, encodedKey string, fieldName string) (kindecesMap map[string]map[string][]byte, iStateErr Error) {
 
 	// Get Blacklisted Keys:
 	blackList, iStateErr := fetchSgtBlackList(stub, encodedKey)
@@ -107,7 +107,7 @@ func (iState *iState) fetchSgt(stub shim.ChaincodeStubInterface, encodedKey stri
 	return
 }
 
-func (iState *iState) fetchSlt(stub shim.ChaincodeStubInterface, encodedKey string) (kindecesMap map[string]map[string][]byte, iStateErr Error) {
+func (iState *iState) fetchSlt(stub shim.ChaincodeStubInterface, encodedKey string, fieldName string) (kindecesMap map[string]map[string][]byte, iStateErr Error) {
 	// Get Blacklisted Keys:
 	blackList, iStateErr := fetchSltBlackList(stub, encodedKey)
 	if iStateErr != nil {
@@ -162,7 +162,7 @@ func (iState *iState) fetchSlt(stub shim.ChaincodeStubInterface, encodedKey stri
 	return
 }
 
-func (iState *iState) fetchSgte(stub shim.ChaincodeStubInterface, encodedKey string) (kindecesMap map[string]map[string][]byte, iStateErr Error) {
+func (iState *iState) fetchSgte(stub shim.ChaincodeStubInterface, encodedKey string, fieldName string) (kindecesMap map[string]map[string][]byte, iStateErr Error) {
 	// Get Blacklisted Keys:
 	blackList, iStateErr := fetchSgteBlackList(stub, encodedKey)
 	if iStateErr != nil {
@@ -215,7 +215,7 @@ func (iState *iState) fetchSgte(stub shim.ChaincodeStubInterface, encodedKey str
 	return
 }
 
-func (iState *iState) fetchSlte(stub shim.ChaincodeStubInterface, encodedKey string) (kindecesMap map[string]map[string][]byte, iStateErr Error) {
+func (iState *iState) fetchSlte(stub shim.ChaincodeStubInterface, encodedKey string, fieldName string) (kindecesMap map[string]map[string][]byte, iStateErr Error) {
 	// Get Blacklisted Keys:
 	blackList, iStateErr := fetchSlteBlackList(stub, encodedKey)
 	if iStateErr != nil {
@@ -265,16 +265,6 @@ func (iState *iState) fetchSlte(stub shim.ChaincodeStubInterface, encodedKey str
 		if iStateErr != nil {
 			return
 		}
-	}
-	return
-}
-
-func (iState *iState) fetchScmplx(stub shim.ChaincodeStubInterface, encodedKey string) (kindecesMap map[string]map[string][]byte, iStateErr Error) {
-	start := encodedKey
-	end := encodedKey + asciiLast
-	iStateErr = iState.getStateByRange(stub, start, end, kindecesMap)
-	if iStateErr != nil {
-		return
 	}
 	return
 }

@@ -122,48 +122,6 @@ func splitIndexAndKey(index string) (partindex, keyRef string) {
 	return
 }
 
-// Unused
-func splitNSeparators(index string, n int) (partindex string, removedVals []string) {
-	partindex = index
-	removedVals = make([]string, n, n)
-	seperatorLen := len(seperator)
-	for i := 0; i < n; i++ {
-		lastIndex := strings.LastIndex(partindex, seperator)
-		if lastIndex == -1 {
-			return
-		}
-		switch lastIndex+seperatorLen >= len(partindex) {
-		case true:
-			removedVals[i] = ""
-		default:
-			removedVals[i] = partindex[lastIndex+seperatorLen:] // separator + null == 2 chars
-		}
-		partindex = partindex[:lastIndex]
-	}
-	return
-}
-
-func removeNValsFromIndex(index string, n int) (partIndex string, removedVals []string) {
-	partIndex = index
-	removedVals = make([]string, n, n)
-	seperatorLen := len(seperator)
-	for i := 0; i < n; i++ {
-		lastIndex := strings.LastIndex(partIndex, seperator)
-		if lastIndex == -1 {
-			return
-		}
-		switch lastIndex+seperatorLen >= len(partIndex) {
-		case true:
-			removedVals[i] = ""
-		default:
-			removedVals[i] = partIndex[lastIndex+seperatorLen:] // separator + null == 2 chars
-		}
-		partIndex = partIndex[:lastIndex]
-	}
-	partIndex = partIndex + seperator
-	return
-}
-
 func incLastChar(val string) (incVal string) {
 	if len(val) == 0 {
 		return
