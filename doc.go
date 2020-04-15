@@ -65,6 +65,8 @@ import (
 // fetchCmplx and evalCmplx function is different from others, and needs extra info, try clean it up for symmetry
 // Encryption support?
 // Clean errors / error.go
+
+// Enable Compaction support
 // 1. Include data in index as optional
 // 2. Options to activate / deactivate / load cache
 // 3. Protobuf
