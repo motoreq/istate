@@ -73,3 +73,5 @@ import (
 // 4. Trying out GetMultipleStates()
 // 5. Fix fieldJSONIndexMap and other meta data
 // 6. Load Docs Counter from db
+
+// Checkpoint
