@@ -13,16 +13,31 @@ const (
 	fieldNameField = ".fieldName"
 
 	// Encode
-	boolTrue    = "t"
-	boolFalse   = "f"
-	positiveNum = "0"
-	negativeNum = "1"
+	boolTrue  = "t"
+	boolFalse = "f"
+
+	// Inverting below causes malfunction
+	positiveNum = "1"
+	negativeNum = "0"
 
 	star = "*"
 	dot  = "."
 
-	seperator = "_"
 	null      = "\000"
+	seperator = null
+	asciiLast = "~"
+	incChar   = "\003" // This must not be less than other predefined symbols
+
+	// Warning: These must be changed when encoding method changes
+	numSym       = "\001"
+	numSeparator = "\002"
+	pNumPrefix   = numSym + positiveNum
+	nNumPrefix   = numSym + negativeNum
+	zero         = numSym + positiveNum + "01_0"
+	// biggestPNum  = numSym + "099_" //+ asciiLast
+	// biggnestNNum = numSym + "199_" //+ asciiLast
+	biggestPNum = numSym + positiveNum + "20_18446744073709552000" // largest(uint64) + 1
+	biggestNNum = numSym + negativeNum + "20_18446744073709552000" // largest(uint64) + 1
 
 	int32Biggest = 2147483647
 )

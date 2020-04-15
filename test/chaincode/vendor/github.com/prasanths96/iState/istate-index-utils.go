@@ -4,7 +4,10 @@ package istate
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/hyperledger/fabric/core/chaincode/shim"
+	"math"
+	"strconv"
 	"strings"
 )
 
@@ -54,21 +57,6 @@ func addKeyWithoutOverLap(query []map[string]interface{}, index string, value in
 	return
 }
 
-func dotsToActualDepth(splitFieldName []string, val interface{}, curIndex ...int) (actualMap map[string]interface{}) {
-	actualMap = make(map[string]interface{})
-	if len(curIndex) == 0 {
-		curIndex = []int{0}
-	}
-
-	if len(splitFieldName)-1 > curIndex[0] {
-		actualMap[splitFieldName[curIndex[0]]] = dotsToActualDepth(splitFieldName, val, curIndex[0]+1)
-	} else {
-		actualMap[splitFieldName[curIndex[0]]] = val
-	}
-
-	return
-}
-
 func fetchCompactIndex(stub shim.ChaincodeStubInterface, key string) (val compactIndexV, iStateErr Error) {
 	valBytes, err := stub.GetState(key)
 	if err != nil {
@@ -106,5 +94,95 @@ func putCompactIndex(stub shim.ChaincodeStubInterface, cIndex map[string]compact
 func generateCIndexKey(index string) (compactIndex string, keyRef string) {
 	compactIndex, keyRef = splitIndexAndKey(index)
 	compactIndex = removeLastSeparator(compactIndex)
+	return
+}
+
+func deriveIndexKeys(indexKey string, isQuery bool) (derivedKeys []string) {
+	splitParts := strings.Split(indexKey, seperator)
+	if len(splitParts) < 4 {
+		return
+	}
+	middleParts := splitParts[2 : len(splitParts)-1]
+	prefix := strings.Join(splitParts[:2], seperator)
+	suffix := splitParts[len(splitParts)-1]
+	derivedKeys = deriveIndexPermutation(middleParts, prefix, suffix, isQuery)
+
+	return
+}
+func deriveIndexPermutation(vals []string, prefix string, suffix string, isQuery bool) (permuteds []string) {
+	numDigits := len(vals)
+	maxCount := int(math.Pow(2, float64(numDigits)))
+	// We don't want 1111 -> which is already main index
+	permuteds = make([]string, maxCount-2)
+	for i := 1; i < maxCount-1; i++ {
+		permString := fmt.Sprintf("%v", strconv.FormatInt(int64(i), 2))
+
+		// Fill zeros
+		diff := numDigits - len(permString)
+		if diff > 0 {
+			bs := make([]byte, diff)
+			for i := 0; i < diff; i++ {
+				bs[i] = '0'
+			}
+			permString = string(bs) + permString
+		}
+		newIndex := asciiLast + removeSuffixZeros(permString) + seperator + prefix + seperator + getIndexPermVal(vals, permString, isQuery) + seperator + suffix
+		permuteds[i-1] = newIndex
+	}
+
+	return
+}
+
+func removeSuffixZeros(val string) (removed string) {
+	removed = val
+	for i := len(val) - 1; i > -1; i-- {
+		if val[i] != '0' {
+			if i+1 < len(val) {
+				removed = removed[:i+1]
+			}
+			break
+		}
+	}
+	return
+}
+
+func getIndexPermVal(vals []string, permString string, isQuery bool) (permVal string) {
+	permVal = ""
+	for i := 0; i < len(permString); i++ {
+		presetFlag := false
+		if permString[i] == '1' {
+			permVal += vals[i]
+			presetFlag = true
+		}
+		switch isQuery && !presetFlag {
+		case true:
+			permVal += star + seperator
+		default:
+			permVal += seperator
+		}
+	}
+	// Remove last seperator
+	permVal = permVal[:len(permVal)-len(seperator)]
+	return
+}
+
+func removeNValsFromIndex(index string, n int) (partIndex string, removedVals []string) {
+	partIndex = index
+	removedVals = make([]string, n, n)
+	seperatorLen := len(seperator)
+	for i := 0; i < n; i++ {
+		lastIndex := strings.LastIndex(partIndex, seperator)
+		if lastIndex == -1 {
+			return
+		}
+		switch lastIndex+seperatorLen >= len(partIndex) {
+		case true:
+			removedVals[i] = ""
+		default:
+			removedVals[i] = partIndex[lastIndex+seperatorLen:] // separator + null == 2 chars
+		}
+		partIndex = partIndex[:lastIndex]
+	}
+	partIndex = partIndex + seperator
 	return
 }

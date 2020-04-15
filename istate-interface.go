@@ -13,5 +13,5 @@ type Interface interface {
 	UpdateState(shim.ChaincodeStubInterface, interface{}) Error
 	DeleteState(shim.ChaincodeStubInterface, interface{}) Error
 	Query(shim.ChaincodeStubInterface, string) (interface{}, Error)
-	CompactIndex(shim.ChaincodeStubInterface) Error
+	// CompactIndex(shim.ChaincodeStubInterface) Error
 }

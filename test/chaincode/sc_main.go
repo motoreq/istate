@@ -73,8 +73,8 @@ func (sc *TestSmartContract) handleFunctions(stub shim.ChaincodeStubInterface) p
 		return sc.DeleteState(stub)
 	case "QueryState":
 		return sc.QueryState(stub)
-	case "CompactIndex":
-		return sc.CompactIndex(stub)
+		// case "CompactIndex":
+		// 	return sc.CompactIndex(stub)
 	}
 
 	return shim.Error(fmt.Sprintf("Invalid function provided: %v", function))
@@ -233,12 +233,12 @@ func (sc *TestSmartContract) QueryState(stub shim.ChaincodeStubInterface) pb.Res
 
 }
 
-//
-func (sc *TestSmartContract) CompactIndex(stub shim.ChaincodeStubInterface) pb.Response {
-	var err error
-	err = sc.TestStructiState.CompactIndex(stub)
-	if err != nil {
-		return shim.Error(err.Error())
-	}
-	return shim.Success([]byte("Success"))
-}
+// //
+// func (sc *TestSmartContract) CompactIndex(stub shim.ChaincodeStubInterface) pb.Response {
+// 	var err error
+// 	err = sc.TestStructiState.CompactIndex(stub)
+// 	if err != nil {
+// 		return shim.Error(err.Error())
+// 	}
+// 	return shim.Success([]byte("Success"))
+// }

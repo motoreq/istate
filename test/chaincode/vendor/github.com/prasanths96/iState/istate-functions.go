@@ -21,6 +21,7 @@ type iState struct {
 	depthKindMap      map[string]reflect.Kind
 	primaryIndex      int
 	docsCounter       map[string]int
+	istateJSONMap     map[string]string
 
 	CompactionSize int
 
@@ -65,6 +66,12 @@ func NewiState(object interface{}, opt Options) (iStateInterface Interface, iSta
 		return
 	}
 
+	var istateJSONMap map[string]string
+	istateJSONMap, iStateErr = generateistateJSONMap(object, fieldJSONIndexMap)
+	if iStateErr != nil {
+		return
+	}
+
 	docsCounter := make(map[string]int)
 	iStateIns := &iState{
 		structRef:         filledRef,
@@ -76,6 +83,7 @@ func NewiState(object interface{}, opt Options) (iStateInterface Interface, iSta
 		docsCounter:       docsCounter,
 		CompactionSize:    opt.DefaultCompactionSize,
 		hashTable:         crc64.MakeTable(crc64.ISO),
+		istateJSONMap:     istateJSONMap,
 	}
 
 	// Cache
@@ -87,6 +95,11 @@ func NewiState(object interface{}, opt Options) (iStateInterface Interface, iSta
 	iStateIns.kvCache = kvCache
 	iStateInterface = iStateIns
 
+	fmt.Println("=============================================================")
+	fmt.Println("depthKindMap", depthKindMap)
+	fmt.Println("=============================================================")
+	fmt.Println("istateJSONMAP: ", istateJSONMap)
+	fmt.Println("=============================================================")
 	return
 }
 

@@ -46,6 +46,9 @@ var errorCodes = map[int]string{
 	2014: "findMapDifference: Only map kind is expected, Received: %v %v",
 	2015: "traverseAndGenerateRelationalTable: currentdepth: %v, not found in depthKindMap",
 	2016: "traverseAndGenerateRelationalTable: Cannot find Kind for convertToPrimitiveType",
+	2017: "numSign: Invalid number encoding",
+	2018: "generateistateJSONMap: Marshal error",
+	2019: "generateistateJSONMap: Unmarshal error",
 
 	// Query
 	3001: "Query: Marshal Error:",
@@ -67,6 +70,9 @@ var errorCodes = map[int]string{
 	3017: "convertToPrimitiveType: Invalid primitive type received: %v",
 	3018: "convertToRightType: Field not found in mapKeyKindMap: %v",
 	3019: "parseAndEvalSingle: Unmarshal error",
+	3020: "parseCmplxAndFetch: Error when reading operator stack",
+	3021: "parseCmplxAndFetch: Error when popping result stack",
+	3022: "parseCmplxAndFetch: Error when popping opeartor stack",
 
 	// General utils
 	4001: "convertObjToMap: Marshal Error",
@@ -74,6 +80,7 @@ var errorCodes = map[int]string{
 	4003: "getKeyByRange: Iterator.Next()",
 	4004: "unmarshalToStruct",
 	4005: "getEncMap: Unmarshal error",
+	4006: "loadKeyByRange: Iterator.Next()",
 
 	// Index utils
 	5001: "fetchCompactIndex: GetState Error",
@@ -89,6 +96,9 @@ var errorCodes = map[int]string{
 	6005: "getuObj",
 	6006: "getIndeces",
 	6007: "delCache: Unable to delete",
+
+	// Cmplx parser
+	7001: "logicalEval: Unsupported logical operator: %v",
 }
 
 // Error is the interface of this package.

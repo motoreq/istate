@@ -121,3 +121,23 @@ func splitIndexAndKey(index string) (partindex, keyRef string) {
 	}
 	return
 }
+
+func incLastChar(val string) (incVal string) {
+	if len(val) == 0 {
+		return
+	}
+	lastChar := val[len(val)-1]
+	val = val[:len(val)-1]
+	incVal = val + string(lastChar+1)
+	return
+}
+
+func decLastChar(val string) (decVal string) {
+	if len(val) == 0 {
+		return
+	}
+	lastChar := val[len(val)-1]
+	val = val[:len(val)-1]
+	decVal = val + string(lastChar-1)
+	return
+}
