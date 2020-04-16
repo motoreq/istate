@@ -16,7 +16,7 @@
 		  It should be handled by the application that imports this package.
 		- "istate" tag must be present for the fields in struct that needs to be available for query support.
 		- Original marshalled structures will be stored with primary key as the key in db.
-		  External application may fetch the structure based on key directly using GetState() API.
+		  External application may fetch the structure based on key directly using GetState() API. // This will not be true once original key optimization is done.
 
 	Restrictions:
 		- Cannot use type "interface{}" for fields
@@ -46,6 +46,10 @@
 				- *neq -> all the elements in array/slice/map must be not equal to the value given.
 				Note: Here, map implies, value part of map needs to be queries without knowing the key part of map.
 				Eg: "aMap.*":"eq somevalue" as opposed to "aMap.key1": "eq somevalue"
+		- Useful ENV for peer container:
+			- CORE_LEDGER_STATE_TOTALQUERYLIMIT=1000000   // Query limit
+			- CORE_CHAINCODE_EXECUTETIMEOUT=300s		  // To avoid timeout during compaction
+    		- CORE_VM_DOCKER_HOSTCONFIG_MEMORY=5368709120‬ // To raise RAM limit of container
 
 	Known Limitations and Issues:
 
@@ -65,11 +69,15 @@ import (
 // Debts:
 // Cleanup *stub - remove stub from all internal functions
 // Cleanup Errors when have time
-// fetchCmplx and evalCmplx function is different from others, and needs extra info, try clean it up for symmetry
-// Encryption support?
 // Clean errors / error.go
+// fetchCmplx and evalCmplx function is different from others, and needs extra info, try clean it up for symmetry
 
+// Encryption support?
+
+// Enable Load Cache !! Important !!
+// Adding prefix to orig key - saves 500ms for 6000 record fetch
 // Enable Compaction support
+
 // 1. Include data in index as optional
 // 2. Options to activate / deactivate / load cache
 // 3. Protobuf

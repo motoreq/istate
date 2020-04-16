@@ -572,9 +572,9 @@ func fillZeroValue(structRef interface{}) (filledStruct interface{}) {
 		for i := 0; i < refVal.NumField(); i++ {
 			curField := refVal.Field(i)
 			// If empty interface
-			if fmt.Sprintf("%v", reflect.TypeOf(curField.Interface())) == "<nil>" {
-				continue
-			}
+			// if fmt.Sprintf("%v", reflect.TypeOf(curField.Interface())) == "<nil>" {
+			// 	continue
+			// }
 			filledField := fillZeroValue(curField.Interface())
 			filledStruct.(reflect.Value).Field(i).Set(reflect.ValueOf(filledField))
 		}

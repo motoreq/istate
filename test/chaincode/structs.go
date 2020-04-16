@@ -13,7 +13,7 @@ type TestStruct struct {
 	AMapStruct       []map[string]SomeStruct                 `json:"aMapStruct" istate:"TestStruct_aMapStruct"`
 	AMultiStruct     MultiStruct                             `json:"aMultiStruct" istate:"TestStruct_aMultiStruct"`
 	AMultiMap        map[string]map[string]map[string]string `json:"aMultiMap" istate:"TestStruct_aMultiMap"`
-	AnEmptyInterface interface{}                             `json:"anEmptyInterface istate:"TestStruct_anEmptyInterface"`
+	//AnEmptyInterface interface{}                             `json:"anEmptyInterface istate:"TestStruct_anEmptyInterface"`
 }
 
 // type TestStruct struct {

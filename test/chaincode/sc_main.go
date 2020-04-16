@@ -24,7 +24,7 @@ func (sc *TestSmartContract) Init(stub shim.ChaincodeStubInterface) pb.Response 
 
 func (sc *TestSmartContract) init() error {
 	iStateOpt := istate.Options{
-		CacheSize:             1000000,
+		CacheSize:             1,
 		DefaultCompactionSize: 10000,
 	}
 	TestStructiState, err := istate.NewiState(TestStruct{}, iStateOpt)

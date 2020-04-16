@@ -16,6 +16,8 @@ const (
 	boolTrue  = "t"
 	boolFalse = "f"
 
+	// Original Key Prefix
+	// keyRefPrefix = "~~"
 	// Inverting below causes malfunction
 	positiveNum = "1"
 	negativeNum = "0"
