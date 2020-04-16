@@ -174,6 +174,10 @@ func (iState *iState) ReadState(stub shim.ChaincodeStubInterface, primaryKey int
 		iStateErr = NewError(err, 1005)
 	}
 
+	if stateBytes == nil {
+		return
+	}
+
 	uObjReflect, iStateErr := iState.unmarshalToStruct(stateBytes)
 	if iStateErr != nil {
 		return
