@@ -564,12 +564,17 @@ func isRealMap(source map[string]interface{}, target map[string]interface{}) (re
 
 //
 func fillZeroValue(structRef interface{}) (filledStruct interface{}) {
+	// Panics for empty interface
 	filledStruct = reflect.New(reflect.TypeOf(structRef)).Elem()
 	refVal := reflect.ValueOf(structRef)
 	switch refVal.Kind() {
 	case reflect.Struct:
 		for i := 0; i < refVal.NumField(); i++ {
 			curField := refVal.Field(i)
+			// If empty interface
+			if fmt.Sprintf("%v", reflect.TypeOf(curField.Interface())) == "<nil>" {
+				continue
+			}
 			filledField := fillZeroValue(curField.Interface())
 			filledStruct.(reflect.Value).Field(i).Set(reflect.ValueOf(filledField))
 		}

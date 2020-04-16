@@ -19,6 +19,7 @@
 		  External application may fetch the structure based on key directly using GetState() API.
 
 	Restrictions:
+		- Cannot use type "interface{}" for fields
 		- Cannot use the following ascii characters in the struct names or field values:
 			- "\000"
 			- "\001"
