@@ -35,6 +35,8 @@
 			- (For future) It is good to avoid having field names starting with "." in the structs
 
 	To be noted:
+		- CreateState, ReadState, UpdateState and DeleteState functions does not validate if state exists or not.
+			Validation must be handled by the external program.
 		- Query:
 			- If an array/slice/map of elemets needs to be queried, the following applies:
 				- eq -> atleast one element in array/slice/map is equal to the value given.

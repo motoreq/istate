@@ -15,6 +15,7 @@ func (iState *iState) setStub(stub *shim.ChaincodeStubInterface) {
 	return
 }
 
+// Note: It returns reflect.Value , not interface{}
 func (iState *iState) unmarshalToStruct(valBytes []byte) (uObj reflect.Value, iStateErr Error) {
 	singleElem := reflect.New(reflect.TypeOf(iState.structRef)).Interface()
 	err := json.Unmarshal(valBytes, &singleElem)

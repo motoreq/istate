@@ -162,12 +162,19 @@ func (sc *TestSmartContract) ReadState(stub shim.ChaincodeStubInterface) pb.Resp
 		return shim.Error(err.Error())
 	}
 
-	stateBytes, err := sc.TestStructiState.ReadState(stub, input.ID)
+	stateInterface, err := sc.TestStructiState.ReadState(stub, input.ID)
 	if err != nil {
 		return shim.Error(err.Error())
 	}
 
-	return shim.Success(stateBytes)
+	fmt.Println("id: ", input.ID, "Val: ", stateInterface)
+
+	ms, err := json.Marshal(stateInterface)
+	if err != nil {
+		return shim.Error(err.Error())
+	}
+
+	return shim.Success(ms)
 
 }
 

@@ -161,7 +161,7 @@ func (iState *iState) CreateState(stub shim.ChaincodeStubInterface, object inter
 }
 
 // ReadState function is used to
-func (iState *iState) ReadState(stub shim.ChaincodeStubInterface, primaryKey interface{}) (stateBytes []byte, iStateErr Error) {
+func (iState *iState) ReadState(stub shim.ChaincodeStubInterface, primaryKey interface{}) (uObj interface{}, iStateErr Error) {
 	iStateLogger.Infof("Inside ReadState")
 	defer iStateLogger.Infof("Exiting ReadState")
 
@@ -173,6 +173,13 @@ func (iState *iState) ReadState(stub shim.ChaincodeStubInterface, primaryKey int
 	if err != nil {
 		iStateErr = NewError(err, 1005)
 	}
+
+	uObjReflect, iStateErr := iState.unmarshalToStruct(stateBytes)
+	if iStateErr != nil {
+		return
+	}
+
+	uObj = uObjReflect.Interface()
 
 	return
 }
@@ -192,9 +199,9 @@ func (iState *iState) UpdateState(stub shim.ChaincodeStubInterface, object inter
 	// Find primary key
 	keyref := iState.getPrimaryKey(object)
 
-	stateBytes, iStateErr := iState.ReadState(stub, keyref)
-	if iStateErr != nil {
-		return
+	stateBytes, err := stub.GetState(keyref)
+	if err != nil {
+		iStateErr = NewError(err, 1017)
 	}
 
 	if stateBytes == nil {
@@ -202,7 +209,7 @@ func (iState *iState) UpdateState(stub shim.ChaincodeStubInterface, object inter
 	}
 
 	var source map[string]interface{}
-	err := json.Unmarshal(stateBytes, &source)
+	err = json.Unmarshal(stateBytes, &source)
 	if err != nil {
 		iStateErr = NewError(err, 1007)
 		return
@@ -285,18 +292,19 @@ func (iState *iState) DeleteState(stub shim.ChaincodeStubInterface, primaryKey i
 
 	keyref := fmt.Sprintf("%v", primaryKey)
 
-	stateBytes, iStateErr := iState.ReadState(stub, keyref)
-	if iStateErr != nil {
-		return
+	stateBytes, err := stub.GetState(keyref)
+	if err != nil {
+		iStateErr = NewError(err, 1018)
 	}
 
 	if stateBytes == nil {
-		iStateErr = NewError(nil, 1013, keyref)
+		// If state does not exist, return silently
+		//iStateErr = NewError(nil, 1013, keyref)
 		return
 	}
 
 	var source map[string]interface{}
-	err := json.Unmarshal(stateBytes, &source)
+	err = json.Unmarshal(stateBytes, &source)
 	if err != nil {
 		iStateErr = NewError(err, 1011)
 		return
