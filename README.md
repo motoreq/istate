@@ -230,7 +230,7 @@ struct SomeStruct type {
 - For nested structs, dot notation can be used. Eg: ````[{"aNestedStruct.nestedString": "eq awesome string"}]````
 
 - To search for elements in an array / slice, ````.*```` notation can be used. 
-Eg:  ````[{"aSlice.*": "eq one of awesome strings"}]````
+Eg:  ````[{"aSlice.*": "eq one of awesome strings"}]```` 
 ***Note: ```*``` can be used to fill a depth in a nested fieldname, if that depth represents a collection type such as array/slice/map***
 
 - To search for a map's key, Eg:  ````[{"aMap": "eq  mapkey"}]````
@@ -241,13 +241,85 @@ Eg:  ````[{"aSlice.*": "eq one of awesome strings"}]````
 
 - To perform complex queries on a single field, ```cmplx``` syntax can be used. Eg: ````[{"anInt": "cmplx and(gt 100, lt 500)"}]````. Refer **Complex Queries** section below for more info.
 
+- To perform ````or```` operation between two query sets, simply append the query array with another object. Eg: ````[{"anInt": "eq 100", "aSlice.*": "eq 1"}, {"anInt": "eq 100", "aMap.*": "eq 1"}]````.
+The relationship between two or more query objects inside the query array is always ````or````. To perform ````and````, ````cmplx```` syntax can be used per field.
+
+#### Queries on Collection type such as Array/Slice/Map
+
+- To match all elements of collection, ````^```` can be prefixed to the operator. 
+
+- Eg: All elements equal to ````[{"aSlice.*": "^eq awesome string"}]```` 
+
+- Eg: None of the elements equal to ````[{"aSlice.*": "^neq awesome string"}]````
+***Note:````neq```` without ````^```` prefix will mean "atleast one element is not equal to."***
+
+- Eg: Atleast one element equal to ````[{"aSlice.*": "^eq awesome string"}]```` 
+
 #### Primitive Queries
 
 ##### Equal to (==)
 
-``` ```
+- ```[{"anInt": "eq 500"}]```
 
+##### Not Equal to (!=)
 
+- ```[{"anInt": "neq 500"}]```
+
+##### Greater than (>)
+
+- ```[{"anInt": "gt 500"}]```
+
+##### Less than (<)
+
+- ```[{"anInt": "lt 500"}]```
+
+##### Greater than or Equal (>=)
+
+- ```[{"anInt": "gte 500"}]```
+
+##### Less than or Equal (<=)
+
+- ```[{"anInt": "lte 500"}]```
+
+#### Match all Queries
+
+##### Equal to (==)
+
+- ```[{"aSlice.*": "^eq 500"}]```
+
+##### Not Equal to (!=)
+
+- ```[{"aSlice.*": "^neq 500"}]```
+
+##### Greater than (>)
+
+- ```[{"aSlice.*": "^gt 500"}]```
+
+##### Less than (<)
+
+- ```[{"aSlice.*": "^lt 500"}]```
+
+##### Greater than or Equal (>=)
+
+- ```[{"aSlice.*": "^gte 500"}]```
+
+##### Less than or Equal (<=)
+
+- ```[{"aSlice.*": "^lte 500"}]```
+
+#### Complex Queries
+
+- The syntax for complex field queries is as follows: ````cmplx <operator>(<query 1>, <query 2>, ... <query n>)````
+
+- The queries enclosed by the operator can also be another complex query. Eg: ````cmplx or(and(gt 7, lt 10), lt 5)````
+
+- ````cmplx```` syntax supports two logical operators. 
+	- ````and````
+	- ````or````
+	
+##### Example
+
+- ````[{"aSlice.*":"cmplx or(and(or(^eq 200, eq -102), ^gt -105), eq 0)", "id":"cmplx or(and(lt test100, gte test1), neq test11)"}]````
 
 ### Reference
 
