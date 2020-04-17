@@ -3,7 +3,7 @@
 ### iState [![GoDoc](https://godoc.org/github.com/prasanths96/iState?status.svg)](https://godoc.org/github.com/prasanths96/iState) [![Go Report Card](https://goreportcard.com/badge/github.com/prasanths96/iState)](https://goreportcard.com/report/github.com/prasanths96/iState)
 
 
-iState is a state management package for Hyperledger fabric chaincode. It can be used to enable encryption of states and high performance rich queries on leveldb.
+iState is a state management package for Hyperledger fabric chaincode. It can be used to perform high performance rich queries on leveldb.
 
 ### Features
 
