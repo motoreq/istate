@@ -1,6 +1,4 @@
-## Under Development
-
-### iState [![GoDoc](https://godoc.org/github.com/prasanths96/iState?status.svg)](https://godoc.org/github.com/prasanths96/iState) [![Go Report Card](https://goreportcard.com/badge/github.com/prasanths96/iState)](https://goreportcard.com/report/github.com/prasanths96/iState)
+## iState [![GoDoc](https://godoc.org/github.com/prasanths96/iState?status.svg)](https://godoc.org/github.com/prasanths96/iState) [![Go Report Card](https://goreportcard.com/badge/github.com/prasanths96/iState)](https://goreportcard.com/report/github.com/prasanths96/iState)
 
 
 iState is a state management package for Hyperledger fabric chaincode. It can be used to perform high performance rich queries on leveldb.
@@ -328,6 +326,11 @@ The relationship between two or more query objects inside the query array is alw
 ##### Example
 
 - ````[{"aSlice.*":"cmplx or(and(or(^eq 200, eq -102), ^gt -105), eq 0)", "id":"cmplx or(and(lt test100, gte test1), neq test11)"}]````
+
+### Useful Peer container ENV
+
+- ```CORE_LEDGER_STATE_TOTALQUERYLIMIT=1000000```
+- ```CORE_VM_DOCKER_HOSTCONFIG_MEMORY=5368709120```
 
 ### Reference
 
