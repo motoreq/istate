@@ -331,6 +331,23 @@ The relationship between two or more query objects inside the query array is alw
 
 - ````[{"aSlice.*":"cmplx or(and(or(^eq 200, eq -102), ^gt -105), eq 0)", "id":"cmplx or(and(lt test100, gte test1), neq test11)"}]````
 
+### Restrictions:
+- Cannot use type ```"interface{}"``` as field type.
+- Cannot use the following ascii characters in the struct names or field values:
+	- ```"\000"```
+	- ```"\001"```
+	- ```"\002"```
+	- ```"~"``` (or) ```"\176"```
+	- ```"\177"```
+- Cannot use these in struct field names:
+	- ```"."```
+	- ``` "*"```
+	- ```".docType"```
+	- ```".keyref"```
+	- ```".value"```
+	- ```".fieldName"```
+	- (For future) It is good to avoid having field names starting with ```"."``` in the structs
+	
 ### Useful Peer container ENV
 
 - ```CORE_LEDGER_STATE_TOTALQUERYLIMIT=1000000```
