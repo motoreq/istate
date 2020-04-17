@@ -1,4 +1,18 @@
-//
+/*
+	Copyright 2020 Prasanth Sundaravelu
+
+	Licensed under the Apache License, Version 2.0 (the "License");
+	you may not use this file except in compliance with the License.
+	You may obtain a copy of the License at
+
+		http://www.apache.org/licenses/LICENSE-2.0
+
+	Unless required by applicable law or agreed to in writing, software
+	distributed under the License is distributed on an "AS IS" BASIS,
+	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+	See the License for the specific language governing permissions and
+	limitations under the License.
+*/
 
 package istate
 
@@ -44,7 +58,7 @@ func (iState *iState) fetchGt(stub shim.ChaincodeStubInterface, encodedKey strin
 	switch isNum(removedVals[1]) {
 	case true:
 		//+1   //-1   //0
-		positive := false
+		var positive bool
 		positive, iStateErr = isPositive(removedVals[1])
 		if iStateErr != nil {
 			return
@@ -91,7 +105,7 @@ func (iState *iState) fetchLt(stub shim.ChaincodeStubInterface, encodedKey strin
 	switch isNum(removedVals[1]) {
 	case true:
 		//+1   //-1   //0
-		positive := false
+		var positive bool
 		positive, iStateErr = isPositive(removedVals[1])
 		if iStateErr != nil {
 			return
@@ -140,7 +154,7 @@ func (iState *iState) fetchGte(stub shim.ChaincodeStubInterface, encodedKey stri
 	switch isNum(removedVals[1]) {
 	case true:
 		//+1   //-1   //0
-		positive := false
+		var positive bool
 		positive, iStateErr = isPositive(removedVals[1])
 		if iStateErr != nil {
 			return
@@ -187,7 +201,7 @@ func (iState *iState) fetchLte(stub shim.ChaincodeStubInterface, encodedKey stri
 	switch isNum(removedVals[1]) {
 	case true:
 		//+1   //-1   //0
-		positive := false
+		var positive bool
 		positive, iStateErr = isPositive(removedVals[1])
 		if iStateErr != nil {
 			return
@@ -271,7 +285,7 @@ func (iState *iState) getStateByRange(stub shim.ChaincodeStubInterface, startKey
 	// Normal Index
 	iterator, err := stub.GetStateByRange(startKey, endKey)
 	if err != nil {
-		iStateErr = NewError(err, 3006)
+		iStateErr = newError(err, 3006)
 		return
 	}
 
@@ -279,7 +293,7 @@ func (iState *iState) getStateByRange(stub shim.ChaincodeStubInterface, startKey
 	for i := 0; iterator.HasNext(); i++ {
 		iteratorResult, err := iterator.Next()
 		if err != nil {
-			iStateErr = NewError(err, 3007)
+			iStateErr = newError(err, 3007)
 			return
 		}
 		indexkey := iteratorResult.GetKey()
@@ -314,7 +328,7 @@ func (iState *iState) getStateByRangeWithPagination(stub shim.ChaincodeStubInter
 	// Normal Index
 	iterator, _, err := stub.GetStateByRangeWithPagination(startKey, endKey, pageSize, bookmark)
 	if err != nil {
-		iStateErr = NewError(err, 3006)
+		iStateErr = newError(err, 3006)
 		return
 	}
 
@@ -322,7 +336,7 @@ func (iState *iState) getStateByRangeWithPagination(stub shim.ChaincodeStubInter
 	for i := 0; iterator.HasNext(); i++ {
 		iteratorResult, err := iterator.Next()
 		if err != nil {
-			iStateErr = NewError(err, 3007)
+			iStateErr = newError(err, 3007)
 			return
 		}
 		indexkey := iteratorResult.GetKey()
@@ -347,7 +361,7 @@ func loadFetchedKV(stub shim.ChaincodeStubInterface, fetchedKVMap map[string][]b
 	// Doesn't fetch if already fetched before
 	valBytes, err := stub.GetState(keyRef)
 	if err != nil {
-		iStateErr = NewError(err, 3008)
+		iStateErr = newError(err, 3008)
 		return
 	}
 	if valBytes != nil {

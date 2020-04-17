@@ -1,4 +1,18 @@
-//
+/*
+	Copyright 2020 Prasanth Sundaravelu
+
+	Licensed under the Apache License, Version 2.0 (the "License");
+	you may not use this file except in compliance with the License.
+	You may obtain a copy of the License at
+
+		http://www.apache.org/licenses/LICENSE-2.0
+
+	Unless required by applicable law or agreed to in writing, software
+	distributed under the License is distributed on an "AS IS" BASIS,
+	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+	See the License for the specific language governing permissions and
+	limitations under the License.
+*/
 
 package istate
 
@@ -111,7 +125,7 @@ func (iState *iState) CreateState(stub shim.ChaincodeStubInterface, object inter
 	iState.setStub(&stub)
 
 	if reflect.TypeOf(object) != reflect.TypeOf(iState.structRef) {
-		iStateErr = NewError(nil, 1014, reflect.TypeOf(iState.structRef), reflect.TypeOf(object))
+		iStateErr = newError(nil, 1014, reflect.TypeOf(iState.structRef), reflect.TypeOf(object))
 		return
 	}
 
@@ -120,14 +134,14 @@ func (iState *iState) CreateState(stub shim.ChaincodeStubInterface, object inter
 
 	mo, err := json.Marshal(object)
 	if err != nil {
-		iStateErr = NewError(err, 1002)
+		iStateErr = newError(err, 1002)
 		return
 	}
 
 	var oMap map[string]interface{}
 	err = json.Unmarshal(mo, &oMap)
 	if err != nil {
-		iStateErr = NewError(err, 1003)
+		iStateErr = newError(err, 1003)
 		return
 	}
 
@@ -143,7 +157,7 @@ func (iState *iState) CreateState(stub shim.ChaincodeStubInterface, object inter
 	for key, val := range encodedKeyValPairs {
 		err = stub.PutState(key, val)
 		if err != nil {
-			iStateErr = NewError(err, 1001)
+			iStateErr = newError(err, 1001)
 			return
 		}
 	}
@@ -171,7 +185,7 @@ func (iState *iState) ReadState(stub shim.ChaincodeStubInterface, primaryKey int
 
 	stateBytes, err := stub.GetState(primaryKeyString)
 	if err != nil {
-		iStateErr = NewError(err, 1005)
+		iStateErr = newError(err, 1005)
 	}
 
 	if stateBytes == nil {
@@ -196,7 +210,7 @@ func (iState *iState) UpdateState(stub shim.ChaincodeStubInterface, object inter
 	iState.setStub(&stub)
 
 	if reflect.TypeOf(object) != reflect.TypeOf(iState.structRef) {
-		iStateErr = NewError(nil, 1015, reflect.TypeOf(iState.structRef), reflect.TypeOf(object))
+		iStateErr = newError(nil, 1015, reflect.TypeOf(iState.structRef), reflect.TypeOf(object))
 		return
 	}
 
@@ -205,7 +219,7 @@ func (iState *iState) UpdateState(stub shim.ChaincodeStubInterface, object inter
 
 	stateBytes, err := stub.GetState(keyref)
 	if err != nil {
-		iStateErr = NewError(err, 1017)
+		iStateErr = newError(err, 1017)
 	}
 
 	if stateBytes == nil {
@@ -215,20 +229,20 @@ func (iState *iState) UpdateState(stub shim.ChaincodeStubInterface, object inter
 	var source map[string]interface{}
 	err = json.Unmarshal(stateBytes, &source)
 	if err != nil {
-		iStateErr = NewError(err, 1007)
+		iStateErr = newError(err, 1007)
 		return
 	}
 
 	mo, err := json.Marshal(object)
 	if err != nil {
-		iStateErr = NewError(err, 1006)
+		iStateErr = newError(err, 1006)
 		return
 	}
 
 	var target map[string]interface{}
 	err = json.Unmarshal(mo, &target)
 	if err != nil {
-		iStateErr = NewError(err, 1007)
+		iStateErr = newError(err, 1007)
 		return
 	}
 
@@ -238,7 +252,7 @@ func (iState *iState) UpdateState(stub shim.ChaincodeStubInterface, object inter
 	}
 
 	if len(appendOrModifyMap) == 0 && len(deleteMap) == 0 {
-		iStateErr = NewError(nil, 1004)
+		iStateErr = newError(nil, 1004)
 		return
 	}
 
@@ -260,14 +274,14 @@ func (iState *iState) UpdateState(stub shim.ChaincodeStubInterface, object inter
 	for key := range deleteEncodedKeyValPairs {
 		err = stub.DelState(key)
 		if err != nil {
-			iStateErr = NewError(err, 1008)
+			iStateErr = newError(err, 1008)
 			return
 		}
 	}
 	for key, val := range appendEncodedKeyValPairs {
 		err = stub.PutState(key, val)
 		if err != nil {
-			iStateErr = NewError(err, 1009)
+			iStateErr = newError(err, 1009)
 			return
 		}
 	}
@@ -298,19 +312,19 @@ func (iState *iState) DeleteState(stub shim.ChaincodeStubInterface, primaryKey i
 
 	stateBytes, err := stub.GetState(keyref)
 	if err != nil {
-		iStateErr = NewError(err, 1018)
+		iStateErr = newError(err, 1018)
 	}
 
 	if stateBytes == nil {
 		// If state does not exist, return silently
-		//iStateErr = NewError(nil, 1013, keyref)
+		//iStateErr = newError(nil, 1013, keyref)
 		return
 	}
 
 	var source map[string]interface{}
 	err = json.Unmarshal(stateBytes, &source)
 	if err != nil {
-		iStateErr = NewError(err, 1011)
+		iStateErr = newError(err, 1011)
 		return
 	}
 
@@ -327,7 +341,7 @@ func (iState *iState) DeleteState(stub shim.ChaincodeStubInterface, primaryKey i
 	for key := range encodedKeyValPairs {
 		err = stub.DelState(key)
 		if err != nil {
-			iStateErr = NewError(err, 1012)
+			iStateErr = newError(err, 1012)
 			return
 		}
 	}
@@ -396,7 +410,7 @@ func (iState *iState) CompactIndex(stub shim.ChaincodeStubInterface) (iStateErr 
 				// Delete original index key
 				err := stub.DelState(origIndexK)
 				if err != nil {
-					iStateErr = NewError(err, 1016)
+					iStateErr = newError(err, 1016)
 					return
 				}
 			}

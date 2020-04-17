@@ -41,7 +41,7 @@ func getRightPrimitiveType(fieldName string, jsonFieldKindMap map[string]reflect
 
 	splitFieldName := strings.Split(fieldName, splitDot)
 	if len(splitFieldName) == 0 {
-		iStateErr = NewError(nil, 3010)
+		iStateErr = newError(nil, 3010)
 		return
 	}
 
@@ -50,14 +50,14 @@ func getRightPrimitiveType(fieldName string, jsonFieldKindMap map[string]reflect
 	for {
 		kind, ok := jsonFieldKindMap[curField]
 		if !ok {
-			iStateErr = NewError(nil, 3016, curField)
+			iStateErr = newError(nil, 3016, curField)
 			return
 		}
 	SpecialFlow:
 		switch kind {
 		case reflect.Array, reflect.Slice:
 			if len(splitFieldName) <= nextIndex {
-				iStateErr = NewError(nil, 3015, fieldName)
+				iStateErr = newError(nil, 3015, fieldName)
 				return
 			}
 			curField = curField + splitDot + star
@@ -65,7 +65,7 @@ func getRightPrimitiveType(fieldName string, jsonFieldKindMap map[string]reflect
 			continue
 		case reflect.Struct:
 			if len(splitFieldName) <= nextIndex {
-				iStateErr = NewError(nil, 3015, fieldName)
+				iStateErr = newError(nil, 3015, fieldName)
 				return
 			}
 			curField = curField + splitDot + splitFieldName[nextIndex]
@@ -79,13 +79,13 @@ func getRightPrimitiveType(fieldName string, jsonFieldKindMap map[string]reflect
 				// Notice kind and ok are changed
 				kind, ok = mapKeyKindMap[curField]
 				if !ok {
-					iStateErr = NewError(nil, 3016, curField)
+					iStateErr = newError(nil, 3016, curField)
 					return
 				}
 				goto SpecialFlow
 			default:
 				if len(splitFieldName) <= nextIndex {
-					iStateErr = NewError(nil, 3015, fieldName)
+					iStateErr = newError(nil, 3015, fieldName)
 					return
 				}
 				//prevField := curField
@@ -108,7 +108,7 @@ func getKeyWordAndVal(queryToEvaluate string) (keyword, val string, iStateErr Er
 	queryToEvaluate = strings.TrimSpace(queryToEvaluate)
 	firstSpaceIndex := strings.Index(queryToEvaluate, " ")
 	if firstSpaceIndex == -1 {
-		iStateErr = NewError(nil, 3004, queryToEvaluate)
+		iStateErr = newError(nil, 3004, queryToEvaluate)
 		return
 	}
 	keyword = queryToEvaluate[:firstSpaceIndex]
@@ -120,7 +120,7 @@ func convertToRightType(fieldName string, toConvert string, jsonFieldKindMap map
 
 	splitFieldName := strings.Split(fieldName, splitDot)
 	if len(splitFieldName) == 0 {
-		iStateErr = NewError(nil, 3010)
+		iStateErr = newError(nil, 3010)
 		return
 	}
 
@@ -129,14 +129,14 @@ func convertToRightType(fieldName string, toConvert string, jsonFieldKindMap map
 	for {
 		kind, ok := jsonFieldKindMap[curField]
 		if !ok {
-			iStateErr = NewError(nil, 3016, curField)
+			iStateErr = newError(nil, 3016, curField)
 			return
 		}
 	SpecialFlow:
 		switch kind {
 		case reflect.Array, reflect.Slice:
 			if len(splitFieldName) <= nextIndex {
-				iStateErr = NewError(nil, 3015, fieldName)
+				iStateErr = newError(nil, 3015, fieldName)
 				return
 			}
 			curField = curField + splitDot + star
@@ -144,7 +144,7 @@ func convertToRightType(fieldName string, toConvert string, jsonFieldKindMap map
 			continue
 		case reflect.Struct:
 			if len(splitFieldName) <= nextIndex {
-				iStateErr = NewError(nil, 3015, fieldName)
+				iStateErr = newError(nil, 3015, fieldName)
 				return
 			}
 			curField = curField + splitDot + splitFieldName[nextIndex]
@@ -158,13 +158,13 @@ func convertToRightType(fieldName string, toConvert string, jsonFieldKindMap map
 				// Notice kind and ok are changed
 				kind, ok = mapKeyKindMap[curField]
 				if !ok {
-					iStateErr = NewError(nil, 3016, curField)
+					iStateErr = newError(nil, 3016, curField)
 					return
 				}
 				goto SpecialFlow
 			default:
 				if len(splitFieldName) <= nextIndex {
-					iStateErr = NewError(nil, 3015, fieldName)
+					iStateErr = newError(nil, 3015, fieldName)
 					return
 				}
 				//prevField := curField
@@ -196,7 +196,7 @@ func convertToPrimitiveType(toConvert string, kind reflect.Kind) (convertedVal i
 	case reflect.Bool:
 		convertedVal, err = strconv.ParseBool(toConvert)
 		if err != nil {
-			iStateErr = NewError(err, 3009)
+			iStateErr = newError(err, 3009)
 			return
 		}
 	case reflect.Int:
@@ -206,7 +206,7 @@ func convertToPrimitiveType(toConvert string, kind reflect.Kind) (convertedVal i
 		}
 		convertedVal, err = strconv.Atoi(toConvert)
 		if err != nil {
-			iStateErr = NewError(err, 3011)
+			iStateErr = newError(err, 3011)
 			return
 		}
 	case reflect.Int8:
@@ -216,7 +216,7 @@ func convertToPrimitiveType(toConvert string, kind reflect.Kind) (convertedVal i
 		}
 		convertedVal, err = strconv.ParseInt(toConvert, 10, 64)
 		if err != nil {
-			iStateErr = NewError(err, 3012)
+			iStateErr = newError(err, 3012)
 			return
 		}
 		convertedVal = int8(convertedVal.(int64))
@@ -227,7 +227,7 @@ func convertToPrimitiveType(toConvert string, kind reflect.Kind) (convertedVal i
 		}
 		convertedVal, err = strconv.ParseInt(toConvert, 10, 64)
 		if err != nil {
-			iStateErr = NewError(err, 3012)
+			iStateErr = newError(err, 3012)
 			return
 		}
 		convertedVal = int16(convertedVal.(int64))
@@ -238,7 +238,7 @@ func convertToPrimitiveType(toConvert string, kind reflect.Kind) (convertedVal i
 		}
 		convertedVal, err = strconv.ParseInt(toConvert, 10, 64)
 		if err != nil {
-			iStateErr = NewError(err, 3012)
+			iStateErr = newError(err, 3012)
 			return
 		}
 		convertedVal = int32(convertedVal.(int64))
@@ -249,7 +249,7 @@ func convertToPrimitiveType(toConvert string, kind reflect.Kind) (convertedVal i
 		}
 		convertedVal, err = strconv.ParseInt(toConvert, 10, 64)
 		if err != nil {
-			iStateErr = NewError(err, 3012)
+			iStateErr = newError(err, 3012)
 			return
 		}
 	case reflect.Uint:
@@ -259,7 +259,7 @@ func convertToPrimitiveType(toConvert string, kind reflect.Kind) (convertedVal i
 		}
 		convertedVal, err = strconv.ParseUint(toConvert, 10, 64)
 		if err != nil {
-			iStateErr = NewError(err, 3013)
+			iStateErr = newError(err, 3013)
 			return
 		}
 		convertedVal = uint(convertedVal.(uint64))
@@ -270,7 +270,7 @@ func convertToPrimitiveType(toConvert string, kind reflect.Kind) (convertedVal i
 		}
 		convertedVal, err = strconv.ParseUint(toConvert, 10, 64)
 		if err != nil {
-			iStateErr = NewError(err, 3013)
+			iStateErr = newError(err, 3013)
 			return
 		}
 		convertedVal = uint8(convertedVal.(uint64))
@@ -281,7 +281,7 @@ func convertToPrimitiveType(toConvert string, kind reflect.Kind) (convertedVal i
 		}
 		convertedVal, err = strconv.ParseUint(toConvert, 10, 64)
 		if err != nil {
-			iStateErr = NewError(err, 3013)
+			iStateErr = newError(err, 3013)
 			return
 		}
 		convertedVal = uint16(convertedVal.(uint64))
@@ -292,7 +292,7 @@ func convertToPrimitiveType(toConvert string, kind reflect.Kind) (convertedVal i
 		}
 		convertedVal, err = strconv.ParseUint(toConvert, 10, 64)
 		if err != nil {
-			iStateErr = NewError(err, 3013)
+			iStateErr = newError(err, 3013)
 			return
 		}
 		convertedVal = uint32(convertedVal.(uint64))
@@ -303,26 +303,26 @@ func convertToPrimitiveType(toConvert string, kind reflect.Kind) (convertedVal i
 		}
 		convertedVal, err = strconv.ParseUint(toConvert, 10, 64)
 		if err != nil {
-			iStateErr = NewError(err, 3013)
+			iStateErr = newError(err, 3013)
 			return
 		}
 	case reflect.Float32:
 		convertedVal, err = strconv.ParseFloat(toConvert, 64)
 		if err != nil {
-			iStateErr = NewError(err, 3014)
+			iStateErr = newError(err, 3014)
 			return
 		}
 		convertedVal = float32(convertedVal.(float64))
 	case reflect.Float64:
 		convertedVal, err = strconv.ParseFloat(toConvert, 64)
 		if err != nil {
-			iStateErr = NewError(err, 3014)
+			iStateErr = newError(err, 3014)
 			return
 		}
 	case reflect.String:
 		convertedVal = toConvert
 	default:
-		iStateErr = NewError(nil, 3017, kind)
+		iStateErr = newError(nil, 3017, kind)
 		return
 	}
 	return

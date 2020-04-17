@@ -1,4 +1,18 @@
-//
+/*
+	Copyright 2020 Prasanth Sundaravelu
+
+	Licensed under the Apache License, Version 2.0 (the "License");
+	you may not use this file except in compliance with the License.
+	You may obtain a copy of the License at
+
+		http://www.apache.org/licenses/LICENSE-2.0
+
+	Unless required by applicable law or agreed to in writing, software
+	distributed under the License is distributed on an "AS IS" BASIS,
+	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+	See the License for the specific language governing permissions and
+	limitations under the License.
+*/
 
 package istate
 
@@ -103,7 +117,7 @@ func (iState *iState) Query(stub shim.ChaincodeStubInterface, queryString string
 	var uQuery []map[string]interface{}
 	err := json.Unmarshal([]byte(queryString), &uQuery)
 	if err != nil {
-		iStateErr = NewError(err, 3002)
+		iStateErr = newError(err, 3002)
 		return
 	}
 
@@ -139,7 +153,7 @@ func (iState *iState) parseAndEvalSingle(stub shim.ChaincodeStubInterface, uQuer
 
 	for index, val := range uQuery {
 		if val, ok := val.(string); !ok {
-			iStateErr = NewError(nil, 3003, reflect.TypeOf(val))
+			iStateErr = newError(nil, 3003, reflect.TypeOf(val))
 			return
 		}
 
@@ -195,7 +209,7 @@ func (iState *iState) parseAndEvalSingle(stub shim.ChaincodeStubInterface, uQuer
 		// case scmplx:
 		// 	querySet.scmplx = addKeyWithoutOverLap(querySet.scmplx, newIndex, newVal)
 		default:
-			iStateErr = NewError(nil, 3005, keyword)
+			iStateErr = newError(nil, 3005, keyword)
 			return
 		}
 

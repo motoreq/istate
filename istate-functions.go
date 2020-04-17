@@ -46,12 +46,19 @@ type iState struct {
 	currentStub *shim.ChaincodeStubInterface
 }
 
+// Options is an input parameter for NewiState function
+// CacheSize determines the max no. of records allowed in memory
+// DefaultCompactionSize determines how many index records to compact at one go
+// Since Compaction process takes lot of time, it is useful to set a batchsize and
+// Compaction can be run multiple times, where each time, n records gets compacted
 type Options struct {
 	CacheSize             int
 	DefaultCompactionSize int
 }
 
-// NewiState function is used to
+// NewiState function is used to create an iState interface for a struct type
+// Further CRUD operation on the struct type can be performed using the interface returned
+// It takes an empty struct value, Options as input and returns istate interface
 func NewiState(object interface{}, opt Options) (iStateInterface Interface, iStateErr Error) {
 	iStateLogger.Infof("Inside NewiState")
 	defer iStateLogger.Infof("Exiting NewiState")
@@ -117,7 +124,12 @@ func NewiState(object interface{}, opt Options) (iStateInterface Interface, iSta
 	return
 }
 
-// CreateState function is used to
+// CreateState function is used to create a new state in the state db
+// It is a function in iState Interface and must be called via the Interface
+// returned by NewiState function
+// It takes chaincode stub and the actual structure value as input params
+// Note: This function does not do state validations such as, checking whether state exists or not
+// before performing the operation
 func (iState *iState) CreateState(stub shim.ChaincodeStubInterface, object interface{}) (iStateErr Error) {
 	iStateLogger.Infof("Inside CreateState")
 	defer iStateLogger.Infof("Exiting CreateState")
@@ -125,7 +137,7 @@ func (iState *iState) CreateState(stub shim.ChaincodeStubInterface, object inter
 	iState.setStub(&stub)
 
 	if reflect.TypeOf(object) != reflect.TypeOf(iState.structRef) {
-		iStateErr = NewError(nil, 1014, reflect.TypeOf(iState.structRef), reflect.TypeOf(object))
+		iStateErr = newError(nil, 1014, reflect.TypeOf(iState.structRef), reflect.TypeOf(object))
 		return
 	}
 
@@ -134,14 +146,14 @@ func (iState *iState) CreateState(stub shim.ChaincodeStubInterface, object inter
 
 	mo, err := json.Marshal(object)
 	if err != nil {
-		iStateErr = NewError(err, 1002)
+		iStateErr = newError(err, 1002)
 		return
 	}
 
 	var oMap map[string]interface{}
 	err = json.Unmarshal(mo, &oMap)
 	if err != nil {
-		iStateErr = NewError(err, 1003)
+		iStateErr = newError(err, 1003)
 		return
 	}
 
@@ -157,7 +169,7 @@ func (iState *iState) CreateState(stub shim.ChaincodeStubInterface, object inter
 	for key, val := range encodedKeyValPairs {
 		err = stub.PutState(key, val)
 		if err != nil {
-			iStateErr = NewError(err, 1001)
+			iStateErr = newError(err, 1001)
 			return
 		}
 	}
@@ -174,7 +186,14 @@ func (iState *iState) CreateState(stub shim.ChaincodeStubInterface, object inter
 	return nil
 }
 
-// ReadState function is used to
+// ReadState function is used to read a state from state db
+// It is a function in iState Interface and must be called via the Interface
+// returned by NewiState function
+// It takes chaincode stub and value of primary key as input params
+// It returns the actual structure value as an interface{}. The returned value can
+// be type asserted to the actual struct type before using
+// Note: This function does not do state validations such as, checking whether state exists or not
+// before performing the operation
 func (iState *iState) ReadState(stub shim.ChaincodeStubInterface, primaryKey interface{}) (uObj interface{}, iStateErr Error) {
 	iStateLogger.Infof("Inside ReadState")
 	defer iStateLogger.Infof("Exiting ReadState")
@@ -185,7 +204,7 @@ func (iState *iState) ReadState(stub shim.ChaincodeStubInterface, primaryKey int
 
 	stateBytes, err := stub.GetState(primaryKeyString)
 	if err != nil {
-		iStateErr = NewError(err, 1005)
+		iStateErr = newError(err, 1005)
 	}
 
 	if stateBytes == nil {
@@ -202,7 +221,12 @@ func (iState *iState) ReadState(stub shim.ChaincodeStubInterface, primaryKey int
 	return
 }
 
-// UpdateState function is used to
+// UpdateState function is used to update a state from statedb
+// It is a function in iState Interface and must be called via the Interface
+// returned by NewiState function
+// It takes chaincode stub and the actual structure value as input params
+// Note: This function does not do state validations such as, checking whether state exists or not
+// before performing the operation
 func (iState *iState) UpdateState(stub shim.ChaincodeStubInterface, object interface{}) (iStateErr Error) {
 	iStateLogger.Infof("Inside UpdateState")
 	defer iStateLogger.Infof("Exiting UpdateState")
@@ -210,7 +234,7 @@ func (iState *iState) UpdateState(stub shim.ChaincodeStubInterface, object inter
 	iState.setStub(&stub)
 
 	if reflect.TypeOf(object) != reflect.TypeOf(iState.structRef) {
-		iStateErr = NewError(nil, 1015, reflect.TypeOf(iState.structRef), reflect.TypeOf(object))
+		iStateErr = newError(nil, 1015, reflect.TypeOf(iState.structRef), reflect.TypeOf(object))
 		return
 	}
 
@@ -219,7 +243,7 @@ func (iState *iState) UpdateState(stub shim.ChaincodeStubInterface, object inter
 
 	stateBytes, err := stub.GetState(keyref)
 	if err != nil {
-		iStateErr = NewError(err, 1017)
+		iStateErr = newError(err, 1017)
 	}
 
 	if stateBytes == nil {
@@ -229,20 +253,20 @@ func (iState *iState) UpdateState(stub shim.ChaincodeStubInterface, object inter
 	var source map[string]interface{}
 	err = json.Unmarshal(stateBytes, &source)
 	if err != nil {
-		iStateErr = NewError(err, 1007)
+		iStateErr = newError(err, 1007)
 		return
 	}
 
 	mo, err := json.Marshal(object)
 	if err != nil {
-		iStateErr = NewError(err, 1006)
+		iStateErr = newError(err, 1006)
 		return
 	}
 
 	var target map[string]interface{}
 	err = json.Unmarshal(mo, &target)
 	if err != nil {
-		iStateErr = NewError(err, 1007)
+		iStateErr = newError(err, 1007)
 		return
 	}
 
@@ -252,7 +276,7 @@ func (iState *iState) UpdateState(stub shim.ChaincodeStubInterface, object inter
 	}
 
 	if len(appendOrModifyMap) == 0 && len(deleteMap) == 0 {
-		iStateErr = NewError(nil, 1004)
+		iStateErr = newError(nil, 1004)
 		return
 	}
 
@@ -274,14 +298,14 @@ func (iState *iState) UpdateState(stub shim.ChaincodeStubInterface, object inter
 	for key := range deleteEncodedKeyValPairs {
 		err = stub.DelState(key)
 		if err != nil {
-			iStateErr = NewError(err, 1008)
+			iStateErr = newError(err, 1008)
 			return
 		}
 	}
 	for key, val := range appendEncodedKeyValPairs {
 		err = stub.PutState(key, val)
 		if err != nil {
-			iStateErr = NewError(err, 1009)
+			iStateErr = newError(err, 1009)
 			return
 		}
 	}
@@ -301,7 +325,12 @@ func (iState *iState) UpdateState(stub shim.ChaincodeStubInterface, object inter
 	return nil
 }
 
-// DeleteState function is used to
+// DeleteState function is used to delete a state from state db
+// It is a function in iState Interface and must be called via the Interface
+// returned by NewiState function
+// It takes chaincode stub and value of primary key as input params
+// Note: This function does not do state validations such as, checking whether state exists or not
+// before performing the operation
 func (iState *iState) DeleteState(stub shim.ChaincodeStubInterface, primaryKey interface{}) (iStateErr Error) {
 	iStateLogger.Infof("Inside DeleteState")
 	defer iStateLogger.Infof("Exiting DeleteState")
@@ -312,19 +341,19 @@ func (iState *iState) DeleteState(stub shim.ChaincodeStubInterface, primaryKey i
 
 	stateBytes, err := stub.GetState(keyref)
 	if err != nil {
-		iStateErr = NewError(err, 1018)
+		iStateErr = newError(err, 1018)
 	}
 
 	if stateBytes == nil {
 		// If state does not exist, return silently
-		//iStateErr = NewError(nil, 1013, keyref)
+		//iStateErr = newError(nil, 1013, keyref)
 		return
 	}
 
 	var source map[string]interface{}
 	err = json.Unmarshal(stateBytes, &source)
 	if err != nil {
-		iStateErr = NewError(err, 1011)
+		iStateErr = newError(err, 1011)
 		return
 	}
 
@@ -341,7 +370,7 @@ func (iState *iState) DeleteState(stub shim.ChaincodeStubInterface, primaryKey i
 	for key := range encodedKeyValPairs {
 		err = stub.DelState(key)
 		if err != nil {
-			iStateErr = NewError(err, 1012)
+			iStateErr = newError(err, 1012)
 			return
 		}
 	}
@@ -410,7 +439,7 @@ func (iState *iState) CompactIndex(stub shim.ChaincodeStubInterface) (iStateErr 
 				// Delete original index key
 				err := stub.DelState(origIndexK)
 				if err != nil {
-					iStateErr = NewError(err, 1016)
+					iStateErr = newError(err, 1016)
 					return
 				}
 			}

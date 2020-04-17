@@ -1,4 +1,18 @@
-//
+/*
+	Copyright 2020 Prasanth Sundaravelu
+
+	Licensed under the Apache License, Version 2.0 (the "License");
+	you may not use this file except in compliance with the License.
+	You may obtain a copy of the License at
+
+		http://www.apache.org/licenses/LICENSE-2.0
+
+	Unless required by applicable law or agreed to in writing, software
+	distributed under the License is distributed on an "AS IS" BASIS,
+	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+	See the License for the specific language governing permissions and
+	limitations under the License.
+*/
 
 package istate
 
@@ -26,7 +40,7 @@ func (iState *iState) generateRelationalTables(obj map[string]interface{}, keyre
 		}
 		jsonTag := field.Tag.Get("json")
 		if jsonTag == "" {
-			iStateErr = NewError(nil, 2001, field.Name, reflect.TypeOf(iState.structRef))
+			iStateErr = newError(nil, 2001, field.Name, reflect.TypeOf(iState.structRef))
 			return
 		}
 		newTable, iStateErr = iState.traverseAndGenerateRelationalTable(val, []interface{}{tableName}, jsonTag, tableName, keyref, isQuery)
@@ -70,7 +84,7 @@ func (iState *iState) traverseAndGenerateRelationalTable(val interface{}, tableN
 		}
 		// For empty slice as leaf value
 		if sliceLen == 0 && !isQuery {
-			tableNameString := joinStringInterfaceSlice(tableName, seperator)
+			tableNameString := joinStringInterfaceSlice(tableName, separator)
 			tableNameString = removeLastSeparators(tableNameString)
 			if tableNameString == iStateTag {
 				break
@@ -85,7 +99,7 @@ func (iState *iState) traverseAndGenerateRelationalTable(val interface{}, tableN
 		}
 	case reflect.Map:
 		mapKeys := reflect.ValueOf(val).MapKeys()
-		currentDepth := joinStringInterfaceSlice(append([]interface{}{jsonTag}, genericTableName...), seperator) + seperator
+		currentDepth := joinStringInterfaceSlice(append([]interface{}{jsonTag}, genericTableName...), separator) + separator
 
 		for i := 0; i < len(mapKeys); i++ {
 			var nextInitialTableName []interface{}
@@ -122,7 +136,7 @@ func (iState *iState) traverseAndGenerateRelationalTable(val interface{}, tableN
 		}
 		// For empty structs as leaf value
 		if len(mapKeys) == 0 && !isQuery {
-			tableNameString := joinStringInterfaceSlice(tableName, seperator)
+			tableNameString := joinStringInterfaceSlice(tableName, separator)
 			tableNameString = removeLastSeparators(tableNameString)
 			if tableNameString == iStateTag {
 				break
@@ -139,25 +153,25 @@ func (iState *iState) traverseAndGenerateRelationalTable(val interface{}, tableN
 		}
 		var currentDepthStar string
 		var currentDepth string
-		newGenericTableName := []interface{}{iStateTag}
-		newGenericTableName = append(newGenericTableName, meta[1].([]interface{})...)
+		// newGenericTableName := []interface{}{iStateTag}
+		// newGenericTableName = append(newGenericTableName, meta[1].([]interface{})...)
 		newRow := make(map[string]interface{})
 		switch !isQuery {
 		case true: //&& !addedGenericRow:
 
 			currentDepthStar = joinStringInterfaceSliceWithDotStar(append([]interface{}{jsonTag}, tableName[1:]...))
-			currentDepth = joinStringInterfaceSlice(append([]interface{}{jsonTag}, tableName[1:]...), seperator)
+			currentDepth = joinStringInterfaceSlice(append([]interface{}{jsonTag}, tableName[1:]...), separator)
 			newRow[fieldNameField] = currentDepthStar
 
 			kind, ok := iState.depthKindMap[currentDepth]
 			// Newly added
 			if !ok {
-				currentDepth = joinStringInterfaceSlice(append([]interface{}{jsonTag}, genericTableName...), seperator)
+				currentDepth = joinStringInterfaceSlice(append([]interface{}{jsonTag}, genericTableName...), separator)
 				kind, ok = iState.depthKindMap[currentDepth]
 			}
 			// Newly added end
 			if !ok {
-				iStateErr = NewError(nil, 2016)
+				iStateErr = newError(nil, 2016)
 				return
 			}
 			valAsString := fmt.Sprintf("%v", reflect.ValueOf(val).Interface())
@@ -172,7 +186,7 @@ func (iState *iState) traverseAndGenerateRelationalTable(val interface{}, tableN
 		default:
 
 			currentDepthStar = joinStringInterfaceSliceWithDotStar(append([]interface{}{jsonTag}, genericTableName...))
-			currentDepth = joinStringInterfaceSlice(append([]interface{}{jsonTag}, genericTableName...), seperator)
+			// currentDepth = joinStringInterfaceSlice(append([]interface{}{jsonTag}, genericTableName...), separator)
 			newRow[fieldNameField] = currentDepthStar
 			newRow[docTypeField] = tableName
 			newRow[valueField] = reflect.ValueOf(val).Interface()
@@ -243,11 +257,11 @@ func (iState *iState) encodeState(oMap map[string]interface{}, keyref string, ha
 
 				switch separation {
 				case 0:
-					encodedKey = joinStringInterfaceSlice(encodedKeyParts, seperator) + seperator + encodedVal + seperator + keyref
+					encodedKey = joinStringInterfaceSlice(encodedKeyParts, separator) + separator + encodedVal + separator + keyref
 				case 1:
-					encodedKey = joinStringInterfaceSlice(encodedKeyParts, seperator) + seperator + encodedVal + seperator
+					encodedKey = joinStringInterfaceSlice(encodedKeyParts, separator) + separator + encodedVal + separator
 				case 2:
-					encodedKey = joinStringInterfaceSlice(encodedKeyParts, seperator) + seperator
+					encodedKey = joinStringInterfaceSlice(encodedKeyParts, separator) + separator
 				}
 
 				switch _, ok := encodedKeyValPairs[encodedKey]; ok {
@@ -311,7 +325,7 @@ func encode(value interface{}) (encodedVal string, iStateErr Error, isNum bool) 
 			numEncodePrefix += positiveNum
 		}
 		if _, ok := numDigits[len(numString)]; !ok {
-			iStateErr = NewError(nil, 2009, len(numString))
+			iStateErr = newError(nil, 2009, len(numString))
 			return
 		}
 		numEncodePrefix += numDigits[len(numString)]
@@ -320,7 +334,7 @@ func encode(value interface{}) (encodedVal string, iStateErr Error, isNum bool) 
 		isNum = true
 		numString := fmt.Sprintf("%v", value)
 		if _, ok := numDigits[len(numString)]; !ok {
-			iStateErr = NewError(nil, 2009, len(numString))
+			iStateErr = newError(nil, 2009, len(numString))
 			return
 		}
 		numEncodePrefix := positiveNum + numDigits[len(numString)]
@@ -338,7 +352,7 @@ func encode(value interface{}) (encodedVal string, iStateErr Error, isNum bool) 
 		}
 		wholeNum := strings.Split(numString, ".")[0]
 		if _, ok := numDigits[len(wholeNum)]; !ok {
-			iStateErr = NewError(nil, 2009, len(wholeNum))
+			iStateErr = newError(nil, 2009, len(wholeNum))
 			return
 		}
 		numEncodePrefix += numDigits[len(wholeNum)]
@@ -346,7 +360,7 @@ func encode(value interface{}) (encodedVal string, iStateErr Error, isNum bool) 
 	case reflect.String:
 		encodedVal = value.(string)
 	default:
-		iStateErr = NewError(nil, 2005, kind)
+		iStateErr = newError(nil, 2005, kind)
 		return
 	}
 	return
@@ -363,7 +377,7 @@ func isNum(indexVal string) (isNum bool) {
 
 func isPositive(numVal string) (positive bool, iStateErr Error) {
 	if len(numVal) < 2 {
-		iStateErr = NewError(nil, 2017)
+		iStateErr = newError(nil, 2017)
 		return
 	}
 	// numVal[1] because numVal[0] has numSym / num marker
@@ -438,7 +452,7 @@ func (iState *iState) findDifference(sourceObjMap map[string]interface{}, target
 					deleteMap[fieldName] = sourceObjMap[fieldName]
 				}
 			default:
-				iStateErr = NewError(nil, 2010, k)
+				iStateErr = newError(nil, 2010, k)
 			}
 		}
 
@@ -448,11 +462,11 @@ func (iState *iState) findDifference(sourceObjMap map[string]interface{}, target
 
 func findSliceDifference(sourceS interface{}, targetS interface{}) (appendS interface{}, deleteS interface{}, iStateErr Error) {
 	if reflect.TypeOf(sourceS) != reflect.TypeOf(targetS) {
-		iStateErr = NewError(nil, 2011, reflect.TypeOf(sourceS), reflect.TypeOf(targetS))
+		iStateErr = newError(nil, 2011, reflect.TypeOf(sourceS), reflect.TypeOf(targetS))
 		return
 	}
 	if reflect.ValueOf(sourceS).Kind() != reflect.Slice {
-		iStateErr = NewError(nil, 2012, reflect.TypeOf(sourceS), reflect.TypeOf(targetS))
+		iStateErr = newError(nil, 2012, reflect.TypeOf(sourceS), reflect.TypeOf(targetS))
 		return
 	}
 
@@ -641,7 +655,7 @@ func generateFieldJSONIndexMap(structRef interface{}, fieldJSONIndexMap map[stri
 			field := reflect.TypeOf(structRef).Field(i)
 			jsonTag := prefix + field.Tag.Get("json")
 			if field.Tag.Get("json") == "" {
-				iStateErr = NewError(nil, 2001, field.Name, reflect.TypeOf(structRef))
+				iStateErr = newError(nil, 2001, field.Name, reflect.TypeOf(structRef))
 				return
 			}
 			fieldJSONIndexMap[jsonTag] = i
@@ -669,7 +683,7 @@ func getPrimaryFieldIndex(object interface{}) (outi int, iStateErr Error) {
 		}
 	}
 	if outi == -1 {
-		iStateErr = NewError(nil, 2002, reflect.TypeOf(object))
+		iStateErr = newError(nil, 2002, reflect.TypeOf(object))
 		return
 	}
 	return
@@ -711,7 +725,7 @@ func generatejsonFieldKindMap(structRef interface{}, jsonFieldKindMap map[string
 			field := reflect.TypeOf(structRef).Field(i)
 			jsonTag := prefix + field.Tag.Get("json")
 			if field.Tag.Get("json") == "" {
-				iStateErr = NewError(nil, 2001, field.Name, reflect.TypeOf(structRef))
+				iStateErr = newError(nil, 2001, field.Name, reflect.TypeOf(structRef))
 				return
 			}
 			jsonFieldKindMap[jsonTag] = refVal.Field(i).Kind()
@@ -734,7 +748,7 @@ func generateDepthKindMap(structRef interface{}, depthKindMap map[string]reflect
 	prefix := ""
 	switch len(meta) > 0 {
 	case true:
-		prefix = meta[0].(string) + seperator
+		prefix = meta[0].(string) + separator
 	default:
 		meta = []interface{}{"", 0}
 	}
@@ -769,7 +783,7 @@ func generateDepthKindMap(structRef interface{}, depthKindMap map[string]reflect
 			field := reflect.TypeOf(structRef).Field(i)
 			jsonTag := prefix + field.Tag.Get("json")
 			if field.Tag.Get("json") == "" {
-				iStateErr = NewError(nil, 2001, field.Name, reflect.TypeOf(structRef))
+				iStateErr = newError(nil, 2001, field.Name, reflect.TypeOf(structRef))
 				return
 			}
 			depthKindMap[jsonTag] = refVal.Field(i).Kind()
@@ -791,7 +805,7 @@ func removeLastSeparators(input string) (val string) {
 	val = input
 	endIndex := -1
 	for i := len(input) - 1; i >= 0; i-- {
-		if input[i] != seperator[0] { // separator[0] is '_' (not "_")
+		if input[i] != separator[0] { // separator[0] is '_' (not "_")
 			break
 		}
 		endIndex = i
@@ -802,12 +816,12 @@ func removeLastSeparators(input string) (val string) {
 	return
 }
 
-func joinStringInterfaceSlice(slice []interface{}, seperatorString string) (joinedString string) {
+func joinStringInterfaceSlice(slice []interface{}, separatorString string) (joinedString string) {
 	if len(slice) > 0 {
 		joinedString = fmt.Sprintf("%v", slice[0])
 	}
 	for i := 1; i < len(slice); i++ {
-		joinedString += seperatorString + fmt.Sprintf("%v", slice[i])
+		joinedString += separatorString + fmt.Sprintf("%v", slice[i])
 	}
 	return
 }
@@ -829,7 +843,7 @@ func joinStringInterfaceSliceWithDotStar(slice []interface{}) (joinedString stri
 }
 
 func (iState *iState) convertIndexToQueryFieldName(index string) (joinedString string) {
-	splitFields := strings.Split(index, seperator)
+	splitFields := strings.Split(index, separator)
 	if len(splitFields) > 0 {
 		var ok bool
 		joinedString, ok = iState.istateJSONMap[splitFields[0]]
@@ -858,7 +872,7 @@ func initQueryEnv(qEnv *queryEnv) {
 func removeLastSeparator(key string) (outKey string) {
 	outKey = key
 	if len(key) != 0 {
-		if key[len(key)-1] == seperator[0] { // separator[0] is '_' (not "_")
+		if key[len(key)-1] == separator[0] { // separator[0] is '_' (not "_")
 			outKey = key[:len(key)-1]
 		}
 	}
@@ -886,7 +900,7 @@ func decodeScientificNotation(sciNot string) (decoded string, iStateErr Error) {
 	if strings.Contains(sciNot, "e") {
 		floatVal, err := strconv.ParseFloat(sciNot, 64)
 		if err != nil {
-			iStateErr = NewError(err, 3014)
+			iStateErr = newError(err, 3014)
 			return
 		}
 		decoded = fmt.Sprintf("%.0f", floatVal)
@@ -1069,12 +1083,12 @@ func generateistateJSONMap(obj interface{}, fieldJSONIndexMap map[string]int) (i
 	var objMap map[string]interface{}
 	mo, err := json.Marshal(obj)
 	if err != nil {
-		iStateErr = NewError(err, 2018)
+		iStateErr = newError(err, 2018)
 		return
 	}
 	err = json.Unmarshal(mo, &objMap)
 	if err != nil {
-		iStateErr = NewError(err, 2019)
+		iStateErr = newError(err, 2019)
 		return
 	}
 
@@ -1086,7 +1100,7 @@ func generateistateJSONMap(obj interface{}, fieldJSONIndexMap map[string]int) (i
 		}
 		jsonTag := field.Tag.Get("json")
 		if jsonTag == "" {
-			iStateErr = NewError(nil, 2001, field.Name, reflect.TypeOf(obj))
+			iStateErr = newError(nil, 2001, field.Name, reflect.TypeOf(obj))
 			return
 		}
 		istateJSONMap[istateTag] = jsonTag

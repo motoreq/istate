@@ -1,4 +1,18 @@
-//
+/*
+	Copyright 2020 Prasanth Sundaravelu
+
+	Licensed under the Apache License, Version 2.0 (the "License");
+	you may not use this file except in compliance with the License.
+	You may obtain a copy of the License at
+
+		http://www.apache.org/licenses/LICENSE-2.0
+
+	Unless required by applicable law or agreed to in writing, software
+	distributed under the License is distributed on an "AS IS" BASIS,
+	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+	See the License for the specific language governing permissions and
+	limitations under the License.
+*/
 
 package istate
 
@@ -60,7 +74,7 @@ func addKeyWithoutOverLap(query []map[string]interface{}, index string, value in
 func fetchCompactIndex(stub shim.ChaincodeStubInterface, key string) (val compactIndexV, iStateErr Error) {
 	valBytes, err := stub.GetState(key)
 	if err != nil {
-		iStateErr = NewError(err, 5001)
+		iStateErr = newError(err, 5001)
 		return
 	}
 	if valBytes == nil {
@@ -68,7 +82,7 @@ func fetchCompactIndex(stub shim.ChaincodeStubInterface, key string) (val compac
 	}
 	err = json.Unmarshal(valBytes, &val)
 	if err != nil {
-		iStateErr = NewError(err, 5002)
+		iStateErr = newError(err, 5002)
 		return
 	}
 	return
@@ -79,12 +93,12 @@ func putCompactIndex(stub shim.ChaincodeStubInterface, cIndex map[string]compact
 	for index, val := range cIndex {
 		mv, err := json.Marshal(val)
 		if err != nil {
-			iStateErr = NewError(err, 5003)
+			iStateErr = newError(err, 5003)
 			return
 		}
 		err = stub.PutState(index, mv)
 		if err != nil {
-			iStateErr = NewError(err, 5004)
+			iStateErr = newError(err, 5004)
 			return
 		}
 	}
@@ -98,12 +112,12 @@ func generateCIndexKey(index string) (compactIndex string, keyRef string) {
 }
 
 func deriveIndexKeys(indexKey string, isQuery bool) (derivedKeys []string) {
-	splitParts := strings.Split(indexKey, seperator)
+	splitParts := strings.Split(indexKey, separator)
 	if len(splitParts) < 4 {
 		return
 	}
 	middleParts := splitParts[2 : len(splitParts)-1]
-	prefix := strings.Join(splitParts[:2], seperator)
+	prefix := strings.Join(splitParts[:2], separator)
 	suffix := splitParts[len(splitParts)-1]
 	derivedKeys = deriveIndexPermutation(middleParts, prefix, suffix, isQuery)
 
@@ -126,7 +140,7 @@ func deriveIndexPermutation(vals []string, prefix string, suffix string, isQuery
 			}
 			permString = string(bs) + permString
 		}
-		newIndex := asciiLast + removeSuffixZeros(permString) + seperator + prefix + seperator + getIndexPermVal(vals, permString, isQuery) + seperator + suffix
+		newIndex := asciiLast + removeSuffixZeros(permString) + separator + prefix + separator + getIndexPermVal(vals, permString, isQuery) + separator + suffix
 		permuteds[i-1] = newIndex
 	}
 
@@ -156,33 +170,33 @@ func getIndexPermVal(vals []string, permString string, isQuery bool) (permVal st
 		}
 		switch isQuery && !presetFlag {
 		case true:
-			permVal += star + seperator
+			permVal += star + separator
 		default:
-			permVal += seperator
+			permVal += separator
 		}
 	}
-	// Remove last seperator
-	permVal = permVal[:len(permVal)-len(seperator)]
+	// Remove last separator
+	permVal = permVal[:len(permVal)-len(separator)]
 	return
 }
 
 func removeNValsFromIndex(index string, n int) (partIndex string, removedVals []string) {
 	partIndex = index
 	removedVals = make([]string, n, n)
-	seperatorLen := len(seperator)
+	separatorLen := len(separator)
 	for i := 0; i < n; i++ {
-		lastIndex := strings.LastIndex(partIndex, seperator)
+		lastIndex := strings.LastIndex(partIndex, separator)
 		if lastIndex == -1 {
 			return
 		}
-		switch lastIndex+seperatorLen >= len(partIndex) {
+		switch lastIndex+separatorLen >= len(partIndex) {
 		case true:
 			removedVals[i] = ""
 		default:
-			removedVals[i] = partIndex[lastIndex+seperatorLen:] // separator + null == 2 chars
+			removedVals[i] = partIndex[lastIndex+separatorLen:] // separator + null == 2 chars
 		}
 		partIndex = partIndex[:lastIndex]
 	}
-	partIndex = partIndex + seperator
+	partIndex = partIndex + separator
 	return
 }

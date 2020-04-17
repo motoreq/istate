@@ -1,4 +1,18 @@
-//
+/*
+	Copyright 2020 Prasanth Sundaravelu
+
+	Licensed under the Apache License, Version 2.0 (the "License");
+	you may not use this file except in compliance with the License.
+	You may obtain a copy of the License at
+
+		http://www.apache.org/licenses/LICENSE-2.0
+
+	Unless required by applicable law or agreed to in writing, software
+	distributed under the License is distributed on an "AS IS" BASIS,
+	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+	See the License for the specific language governing permissions and
+	limitations under the License.
+*/
 
 package istate
 
@@ -66,7 +80,7 @@ func (iState *iState) fetchSgt(stub shim.ChaincodeStubInterface, encodedKey stri
 	switch isNum(removedVals[1]) {
 	case true:
 		//+1   //-1   //0
-		positive := false
+		var positive bool
 		positive, iStateErr = isPositive(removedVals[1])
 		if iStateErr != nil {
 			return
@@ -120,7 +134,7 @@ func (iState *iState) fetchSlt(stub shim.ChaincodeStubInterface, encodedKey stri
 	switch isNum(removedVals[1]) {
 	case true:
 		//+1   //-1   //0
-		positive := false
+		var positive bool
 		positive, iStateErr = isPositive(removedVals[1])
 		if iStateErr != nil {
 			return
@@ -175,7 +189,7 @@ func (iState *iState) fetchSgte(stub shim.ChaincodeStubInterface, encodedKey str
 	switch isNum(removedVals[1]) {
 	case true:
 		//+1   //-1   //0
-		positive := false
+		var positive bool
 		positive, iStateErr = isPositive(removedVals[1])
 		if iStateErr != nil {
 			return
@@ -228,7 +242,7 @@ func (iState *iState) fetchSlte(stub shim.ChaincodeStubInterface, encodedKey str
 	switch isNum(removedVals[1]) {
 	case true:
 		//+1   //-1   //0
-		positive := false
+		var positive bool
 		positive, iStateErr = isPositive(removedVals[1])
 		if iStateErr != nil {
 			return
@@ -308,7 +322,7 @@ func fetchSgtBlackList(stub shim.ChaincodeStubInterface, encodedKey string) (bla
 	switch isNum(removedVals[1]) {
 	case true:
 		//+1   //-1   //0
-		positive := false
+		var positive bool
 		positive, iStateErr = isPositive(removedVals[1])
 		if iStateErr != nil {
 			return
@@ -355,7 +369,7 @@ func fetchSltBlackList(stub shim.ChaincodeStubInterface, encodedKey string) (bla
 	switch isNum(removedVals[1]) {
 	case true:
 		//+1   //-1   //0
-		positive := false
+		var positive bool
 		positive, iStateErr = isPositive(removedVals[1])
 		if iStateErr != nil {
 			return
@@ -402,7 +416,7 @@ func fetchSgteBlackList(stub shim.ChaincodeStubInterface, encodedKey string) (bl
 	switch isNum(removedVals[1]) {
 	case true:
 		//+1   //-1   //0
-		positive := false
+		var positive bool
 		positive, iStateErr = isPositive(removedVals[1])
 		if iStateErr != nil {
 			return
@@ -449,7 +463,7 @@ func fetchSlteBlackList(stub shim.ChaincodeStubInterface, encodedKey string) (bl
 	switch isNum(removedVals[1]) {
 	case true:
 		//+1   //-1   //0
-		positive := false
+		var positive bool
 		positive, iStateErr = isPositive(removedVals[1])
 		if iStateErr != nil {
 			return
@@ -494,14 +508,14 @@ func fetchSlteBlackList(stub shim.ChaincodeStubInterface, encodedKey string) (bl
 func loadKeyRefByRange(stub shim.ChaincodeStubInterface, startKey, endKey string, fetchedKVMap map[string][]byte) (iStateErr Error) {
 	iterator, err := stub.GetStateByRange(startKey, endKey)
 	if err != nil {
-		iStateErr = NewError(err, 3006)
+		iStateErr = newError(err, 3006)
 		return
 	}
 	defer iterator.Close()
 	for i := 0; iterator.HasNext(); i++ {
 		iteratorResult, err := iterator.Next()
 		if err != nil {
-			iStateErr = NewError(err, 4006)
+			iStateErr = newError(err, 4006)
 			return
 		}
 		key := iteratorResult.GetKey()
@@ -531,7 +545,7 @@ func (iState *iState) loadNonBlackListStateByRange(stub shim.ChaincodeStubInterf
 	// Normal Index
 	iterator, err := stub.GetStateByRange(startKey, endKey)
 	if err != nil {
-		iStateErr = NewError(err, 3006)
+		iStateErr = newError(err, 3006)
 		return
 	}
 
@@ -539,7 +553,7 @@ func (iState *iState) loadNonBlackListStateByRange(stub shim.ChaincodeStubInterf
 	for i := 0; iterator.HasNext(); i++ {
 		iteratorResult, err := iterator.Next()
 		if err != nil {
-			iStateErr = NewError(err, 3007)
+			iStateErr = newError(err, 3007)
 			return
 		}
 		indexkey := iteratorResult.GetKey()

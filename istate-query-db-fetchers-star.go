@@ -508,14 +508,14 @@ func fetchSlteBlackList(stub shim.ChaincodeStubInterface, encodedKey string) (bl
 func loadKeyRefByRange(stub shim.ChaincodeStubInterface, startKey, endKey string, fetchedKVMap map[string][]byte) (iStateErr Error) {
 	iterator, err := stub.GetStateByRange(startKey, endKey)
 	if err != nil {
-		iStateErr = NewError(err, 3006)
+		iStateErr = newError(err, 3006)
 		return
 	}
 	defer iterator.Close()
 	for i := 0; iterator.HasNext(); i++ {
 		iteratorResult, err := iterator.Next()
 		if err != nil {
-			iStateErr = NewError(err, 4006)
+			iStateErr = newError(err, 4006)
 			return
 		}
 		key := iteratorResult.GetKey()
@@ -545,7 +545,7 @@ func (iState *iState) loadNonBlackListStateByRange(stub shim.ChaincodeStubInterf
 	// Normal Index
 	iterator, err := stub.GetStateByRange(startKey, endKey)
 	if err != nil {
-		iStateErr = NewError(err, 3006)
+		iStateErr = newError(err, 3006)
 		return
 	}
 
@@ -553,7 +553,7 @@ func (iState *iState) loadNonBlackListStateByRange(stub shim.ChaincodeStubInterf
 	for i := 0; iterator.HasNext(); i++ {
 		iteratorResult, err := iterator.Next()
 		if err != nil {
-			iStateErr = NewError(err, 3007)
+			iStateErr = newError(err, 3007)
 			return
 		}
 		indexkey := iteratorResult.GetKey()

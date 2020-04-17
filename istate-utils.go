@@ -40,7 +40,7 @@ func (iState *iState) generateRelationalTables(obj map[string]interface{}, keyre
 		}
 		jsonTag := field.Tag.Get("json")
 		if jsonTag == "" {
-			iStateErr = NewError(nil, 2001, field.Name, reflect.TypeOf(iState.structRef))
+			iStateErr = newError(nil, 2001, field.Name, reflect.TypeOf(iState.structRef))
 			return
 		}
 		newTable, iStateErr = iState.traverseAndGenerateRelationalTable(val, []interface{}{tableName}, jsonTag, tableName, keyref, isQuery)
@@ -171,7 +171,7 @@ func (iState *iState) traverseAndGenerateRelationalTable(val interface{}, tableN
 			}
 			// Newly added end
 			if !ok {
-				iStateErr = NewError(nil, 2016)
+				iStateErr = newError(nil, 2016)
 				return
 			}
 			valAsString := fmt.Sprintf("%v", reflect.ValueOf(val).Interface())
@@ -325,7 +325,7 @@ func encode(value interface{}) (encodedVal string, iStateErr Error, isNum bool) 
 			numEncodePrefix += positiveNum
 		}
 		if _, ok := numDigits[len(numString)]; !ok {
-			iStateErr = NewError(nil, 2009, len(numString))
+			iStateErr = newError(nil, 2009, len(numString))
 			return
 		}
 		numEncodePrefix += numDigits[len(numString)]
@@ -334,7 +334,7 @@ func encode(value interface{}) (encodedVal string, iStateErr Error, isNum bool) 
 		isNum = true
 		numString := fmt.Sprintf("%v", value)
 		if _, ok := numDigits[len(numString)]; !ok {
-			iStateErr = NewError(nil, 2009, len(numString))
+			iStateErr = newError(nil, 2009, len(numString))
 			return
 		}
 		numEncodePrefix := positiveNum + numDigits[len(numString)]
@@ -352,7 +352,7 @@ func encode(value interface{}) (encodedVal string, iStateErr Error, isNum bool) 
 		}
 		wholeNum := strings.Split(numString, ".")[0]
 		if _, ok := numDigits[len(wholeNum)]; !ok {
-			iStateErr = NewError(nil, 2009, len(wholeNum))
+			iStateErr = newError(nil, 2009, len(wholeNum))
 			return
 		}
 		numEncodePrefix += numDigits[len(wholeNum)]
@@ -360,7 +360,7 @@ func encode(value interface{}) (encodedVal string, iStateErr Error, isNum bool) 
 	case reflect.String:
 		encodedVal = value.(string)
 	default:
-		iStateErr = NewError(nil, 2005, kind)
+		iStateErr = newError(nil, 2005, kind)
 		return
 	}
 	return
@@ -377,7 +377,7 @@ func isNum(indexVal string) (isNum bool) {
 
 func isPositive(numVal string) (positive bool, iStateErr Error) {
 	if len(numVal) < 2 {
-		iStateErr = NewError(nil, 2017)
+		iStateErr = newError(nil, 2017)
 		return
 	}
 	// numVal[1] because numVal[0] has numSym / num marker
@@ -452,7 +452,7 @@ func (iState *iState) findDifference(sourceObjMap map[string]interface{}, target
 					deleteMap[fieldName] = sourceObjMap[fieldName]
 				}
 			default:
-				iStateErr = NewError(nil, 2010, k)
+				iStateErr = newError(nil, 2010, k)
 			}
 		}
 
@@ -462,11 +462,11 @@ func (iState *iState) findDifference(sourceObjMap map[string]interface{}, target
 
 func findSliceDifference(sourceS interface{}, targetS interface{}) (appendS interface{}, deleteS interface{}, iStateErr Error) {
 	if reflect.TypeOf(sourceS) != reflect.TypeOf(targetS) {
-		iStateErr = NewError(nil, 2011, reflect.TypeOf(sourceS), reflect.TypeOf(targetS))
+		iStateErr = newError(nil, 2011, reflect.TypeOf(sourceS), reflect.TypeOf(targetS))
 		return
 	}
 	if reflect.ValueOf(sourceS).Kind() != reflect.Slice {
-		iStateErr = NewError(nil, 2012, reflect.TypeOf(sourceS), reflect.TypeOf(targetS))
+		iStateErr = newError(nil, 2012, reflect.TypeOf(sourceS), reflect.TypeOf(targetS))
 		return
 	}
 
@@ -655,7 +655,7 @@ func generateFieldJSONIndexMap(structRef interface{}, fieldJSONIndexMap map[stri
 			field := reflect.TypeOf(structRef).Field(i)
 			jsonTag := prefix + field.Tag.Get("json")
 			if field.Tag.Get("json") == "" {
-				iStateErr = NewError(nil, 2001, field.Name, reflect.TypeOf(structRef))
+				iStateErr = newError(nil, 2001, field.Name, reflect.TypeOf(structRef))
 				return
 			}
 			fieldJSONIndexMap[jsonTag] = i
@@ -683,7 +683,7 @@ func getPrimaryFieldIndex(object interface{}) (outi int, iStateErr Error) {
 		}
 	}
 	if outi == -1 {
-		iStateErr = NewError(nil, 2002, reflect.TypeOf(object))
+		iStateErr = newError(nil, 2002, reflect.TypeOf(object))
 		return
 	}
 	return
@@ -725,7 +725,7 @@ func generatejsonFieldKindMap(structRef interface{}, jsonFieldKindMap map[string
 			field := reflect.TypeOf(structRef).Field(i)
 			jsonTag := prefix + field.Tag.Get("json")
 			if field.Tag.Get("json") == "" {
-				iStateErr = NewError(nil, 2001, field.Name, reflect.TypeOf(structRef))
+				iStateErr = newError(nil, 2001, field.Name, reflect.TypeOf(structRef))
 				return
 			}
 			jsonFieldKindMap[jsonTag] = refVal.Field(i).Kind()
@@ -783,7 +783,7 @@ func generateDepthKindMap(structRef interface{}, depthKindMap map[string]reflect
 			field := reflect.TypeOf(structRef).Field(i)
 			jsonTag := prefix + field.Tag.Get("json")
 			if field.Tag.Get("json") == "" {
-				iStateErr = NewError(nil, 2001, field.Name, reflect.TypeOf(structRef))
+				iStateErr = newError(nil, 2001, field.Name, reflect.TypeOf(structRef))
 				return
 			}
 			depthKindMap[jsonTag] = refVal.Field(i).Kind()
@@ -900,7 +900,7 @@ func decodeScientificNotation(sciNot string) (decoded string, iStateErr Error) {
 	if strings.Contains(sciNot, "e") {
 		floatVal, err := strconv.ParseFloat(sciNot, 64)
 		if err != nil {
-			iStateErr = NewError(err, 3014)
+			iStateErr = newError(err, 3014)
 			return
 		}
 		decoded = fmt.Sprintf("%.0f", floatVal)
@@ -1083,12 +1083,12 @@ func generateistateJSONMap(obj interface{}, fieldJSONIndexMap map[string]int) (i
 	var objMap map[string]interface{}
 	mo, err := json.Marshal(obj)
 	if err != nil {
-		iStateErr = NewError(err, 2018)
+		iStateErr = newError(err, 2018)
 		return
 	}
 	err = json.Unmarshal(mo, &objMap)
 	if err != nil {
-		iStateErr = NewError(err, 2019)
+		iStateErr = newError(err, 2019)
 		return
 	}
 
@@ -1100,7 +1100,7 @@ func generateistateJSONMap(obj interface{}, fieldJSONIndexMap map[string]int) (i
 		}
 		jsonTag := field.Tag.Get("json")
 		if jsonTag == "" {
-			iStateErr = NewError(nil, 2001, field.Name, reflect.TypeOf(obj))
+			iStateErr = newError(nil, 2001, field.Name, reflect.TypeOf(obj))
 			return
 		}
 		istateJSONMap[istateTag] = jsonTag

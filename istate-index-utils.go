@@ -74,7 +74,7 @@ func addKeyWithoutOverLap(query []map[string]interface{}, index string, value in
 func fetchCompactIndex(stub shim.ChaincodeStubInterface, key string) (val compactIndexV, iStateErr Error) {
 	valBytes, err := stub.GetState(key)
 	if err != nil {
-		iStateErr = NewError(err, 5001)
+		iStateErr = newError(err, 5001)
 		return
 	}
 	if valBytes == nil {
@@ -82,7 +82,7 @@ func fetchCompactIndex(stub shim.ChaincodeStubInterface, key string) (val compac
 	}
 	err = json.Unmarshal(valBytes, &val)
 	if err != nil {
-		iStateErr = NewError(err, 5002)
+		iStateErr = newError(err, 5002)
 		return
 	}
 	return
@@ -93,12 +93,12 @@ func putCompactIndex(stub shim.ChaincodeStubInterface, cIndex map[string]compact
 	for index, val := range cIndex {
 		mv, err := json.Marshal(val)
 		if err != nil {
-			iStateErr = NewError(err, 5003)
+			iStateErr = newError(err, 5003)
 			return
 		}
 		err = stub.PutState(index, mv)
 		if err != nil {
-			iStateErr = NewError(err, 5004)
+			iStateErr = newError(err, 5004)
 			return
 		}
 	}

@@ -1,4 +1,18 @@
-//
+/*
+	Copyright 2020 Prasanth Sundaravelu
+
+	Licensed under the Apache License, Version 2.0 (the "License");
+	you may not use this file except in compliance with the License.
+	You may obtain a copy of the License at
+
+		http://www.apache.org/licenses/LICENSE-2.0
+
+	Unless required by applicable law or agreed to in writing, software
+	distributed under the License is distributed on an "AS IS" BASIS,
+	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+	See the License for the specific language governing permissions and
+	limitations under the License.
+*/
 
 package istate
 
@@ -123,10 +137,10 @@ func (err iStateError) GetCode() int {
 	return err.Code
 }
 
-// NewError function is to create Errors in a more readable way.
-func NewError(err error, code int, params ...interface{}) Error {
-	iStateLogger.Debugf("Inside NewError")
-	defer iStateLogger.Debugf("Exiting NewError")
+// newError function is to create Errors in a more readable way.
+func newError(err error, code int, params ...interface{}) Error {
+	iStateLogger.Debugf("Inside newError")
+	defer iStateLogger.Debugf("Exiting newError")
 	msg := fmt.Sprintf("%d: ", code) + fmt.Sprintf(errorCodes[code], params...)
 	if err != nil {
 		msg = errorPrefix + msg + ": " + err.Error()

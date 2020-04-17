@@ -1,4 +1,18 @@
-//
+/*
+	Copyright 2020 Prasanth Sundaravelu
+
+	Licensed under the Apache License, Version 2.0 (the "License");
+	you may not use this file except in compliance with the License.
+	You may obtain a copy of the License at
+
+		http://www.apache.org/licenses/LICENSE-2.0
+
+	Unless required by applicable law or agreed to in writing, software
+	distributed under the License is distributed on an "AS IS" BASIS,
+	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+	See the License for the specific language governing permissions and
+	limitations under the License.
+*/
 
 package istate
 
@@ -20,7 +34,7 @@ type cache struct {
 func (iState *iState) loader(key interface{}) (val interface{}, iStateErr error) {
 	keyString, ok := key.(string)
 	if !ok {
-		iStateErr = NewError(nil, 6001, reflect.TypeOf(key))
+		iStateErr = newError(nil, 6001, reflect.TypeOf(key))
 		return
 	}
 	// See what's wrong ..
@@ -30,11 +44,11 @@ func (iState *iState) loader(key interface{}) (val interface{}, iStateErr error)
 	stubP := iState.currentStub
 	valBytes, err := (*stubP).GetState(keyString)
 	if err != nil {
-		iStateErr = NewError(err, 6002)
+		iStateErr = newError(err, 6002)
 		return
 	}
 	if valBytes == nil {
-		iStateErr = NewError(nil, 6003)
+		iStateErr = newError(nil, 6003)
 	}
 
 	uObj, iStateErr := iState.unmarshalToStruct(valBytes)
@@ -74,7 +88,7 @@ func (iState *iState) setCache(key string, obj interface{}, valBytes []byte, has
 func (iState *iState) removeCache(key string) (iStateErr Error) {
 	ok := iState.kvCache.Remove(key)
 	if !ok {
-		iStateErr = NewError(nil, 6007)
+		iStateErr = newError(nil, 6007)
 		return
 	}
 	return
@@ -83,7 +97,7 @@ func (iState *iState) removeCache(key string) (iStateErr Error) {
 func (iState *iState) getkvHash(key string) (hashString string, iStateErr Error) {
 	val, err := iState.kvCache.Get(key)
 	if err != nil {
-		iStateErr = NewError(err, 6004)
+		iStateErr = newError(err, 6004)
 		return
 	}
 	hashString = val.(cache).objHash
@@ -93,7 +107,7 @@ func (iState *iState) getkvHash(key string) (hashString string, iStateErr Error)
 func (iState *iState) getuObj(key string) (uObj reflect.Value, iStateErr Error) {
 	val, err := iState.kvCache.Get(key)
 	if err != nil {
-		iStateErr = NewError(err, 6005)
+		iStateErr = newError(err, 6005)
 		return
 	}
 	uObj = val.(cache).uObj
@@ -103,7 +117,7 @@ func (iState *iState) getuObj(key string) (uObj reflect.Value, iStateErr Error) 
 func (iState *iState) getIndeces(key string) (indeces map[string][]byte, iStateErr Error) {
 	val, err := iState.kvCache.Get(key)
 	if err != nil {
-		iStateErr = NewError(err, 6006)
+		iStateErr = newError(err, 6006)
 		return
 	}
 	// See what's wrong

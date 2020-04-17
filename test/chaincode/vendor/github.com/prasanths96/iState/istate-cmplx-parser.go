@@ -1,4 +1,18 @@
-//
+/*
+	Copyright 2020 Prasanth Sundaravelu
+
+	Licensed under the Apache License, Version 2.0 (the "License");
+	you may not use this file except in compliance with the License.
+	You may obtain a copy of the License at
+
+		http://www.apache.org/licenses/LICENSE-2.0
+
+	Unless required by applicable law or agreed to in writing, software
+	distributed under the License is distributed on an "AS IS" BASIS,
+	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+	See the License for the specific language governing permissions and
+	limitations under the License.
+*/
 
 package istate
 
@@ -58,12 +72,12 @@ func (iState *iState) parseCmplxAndFetch(partIndex, queryToParse string, valKind
 					return
 				}
 				// Full Index
-				indexKey := partIndex + encodedVal + seperator
+				indexKey := partIndex + encodedVal + separator
 
 				// Fetch only if it is the first arg / or operator
 				curOperator, err := operatorStack.ReadString()
 				if err != nil {
-					iStateErr = NewError(err, 3020)
+					iStateErr = newError(err, 3020)
 					return
 				}
 				fetch := firstArgumentFlag || (curOperator == or)
@@ -82,12 +96,12 @@ func (iState *iState) parseCmplxAndFetch(partIndex, queryToParse string, valKind
 						// It is not first argument + it is not and operator
 						popped, err := resultStack.Pop()
 						if err != nil {
-							iStateErr = NewError(err, 3021)
+							iStateErr = newError(err, 3021)
 							return
 						}
 						curOperator, err := operatorStack.ReadString()
 						if err != nil {
-							iStateErr = NewError(err, 3020)
+							iStateErr = newError(err, 3020)
 							return
 						}
 						// and operator will already be evaluated when fetching (by filtering)
@@ -108,7 +122,7 @@ func (iState *iState) parseCmplxAndFetch(partIndex, queryToParse string, valKind
 					// it can already be done with existing fetched result.
 					popped, err := resultStack.Pop()
 					if err != nil {
-						iStateErr = NewError(err, 3021)
+						iStateErr = newError(err, 3021)
 						return
 					}
 					iStateErr = iState.selectAndFilter(keyword, indexKey, popped.(map[string]map[string][]byte))
@@ -123,7 +137,7 @@ func (iState *iState) parseCmplxAndFetch(partIndex, queryToParse string, valKind
 			if c == ')' {
 				_, err := operatorStack.Pop()
 				if err != nil {
-					iStateErr = NewError(err, 3022)
+					iStateErr = newError(err, 3022)
 					return
 				}
 				// In Multiple level cmplx queries, when exiting a level, there might be result
@@ -131,18 +145,18 @@ func (iState *iState) parseCmplxAndFetch(partIndex, queryToParse string, valKind
 				if resultStack.Size() > 1 {
 					poppedfirst, err := resultStack.Pop()
 					if err != nil {
-						iStateErr = NewError(err, 3021)
+						iStateErr = newError(err, 3021)
 						return
 					}
 					poppedsecond, err := resultStack.Pop()
 					if err != nil {
-						iStateErr = NewError(err, 3021)
+						iStateErr = newError(err, 3021)
 						return
 					}
 
 					curOperator, err := operatorStack.ReadString()
 					if err != nil {
-						iStateErr = NewError(err, 3020)
+						iStateErr = newError(err, 3020)
 						return
 					}
 					// here, and operation may also be needed
@@ -162,7 +176,7 @@ func (iState *iState) parseCmplxAndFetch(partIndex, queryToParse string, valKind
 
 	fullEvalResult, err := resultStack.Pop()
 	if err != nil {
-		iStateErr = NewError(err, 3021)
+		iStateErr = newError(err, 3021)
 		return
 	}
 	kindecesMap = fullEvalResult.(map[string]map[string][]byte)
@@ -217,7 +231,7 @@ func (iState *iState) parseCmplxAndEval(partIndex, queryToParse string, valKind 
 					return
 				}
 				// Full Index
-				indexKey := partIndex + encodedVal + seperator
+				indexKey := partIndex + encodedVal + separator
 
 				var match bool
 				match, iStateErr = selectAndEval(keyword, indexKey, encKV)
@@ -231,12 +245,12 @@ func (iState *iState) parseCmplxAndEval(partIndex, queryToParse string, valKind 
 				} else {
 					popped, err := resultStack.PopBool()
 					if err != nil {
-						iStateErr = NewError(err, 3021)
+						iStateErr = newError(err, 3021)
 						return
 					}
 					curOperator, err := operatorStack.ReadString()
 					if err != nil {
-						iStateErr = NewError(err, 3020)
+						iStateErr = newError(err, 3020)
 						return
 					}
 
@@ -251,7 +265,7 @@ func (iState *iState) parseCmplxAndEval(partIndex, queryToParse string, valKind 
 			if c == ')' {
 				_, err := operatorStack.Pop()
 				if err != nil {
-					iStateErr = NewError(err, 3022)
+					iStateErr = newError(err, 3022)
 					return
 				}
 				// In Multiple level cmplx queries, when exiting a level, there might be result
@@ -259,18 +273,18 @@ func (iState *iState) parseCmplxAndEval(partIndex, queryToParse string, valKind 
 				if resultStack.Size() > 1 {
 					poppedfirst, err := resultStack.PopBool()
 					if err != nil {
-						iStateErr = NewError(err, 3021)
+						iStateErr = newError(err, 3021)
 						return
 					}
 					poppedsecond, err := resultStack.PopBool()
 					if err != nil {
-						iStateErr = NewError(err, 3021)
+						iStateErr = newError(err, 3021)
 						return
 					}
 
 					curOperator, err := operatorStack.ReadString()
 					if err != nil {
-						iStateErr = NewError(err, 3020)
+						iStateErr = newError(err, 3020)
 						return
 					}
 					poppedfirst, iStateErr = logicalEval(poppedfirst, poppedsecond, curOperator)
@@ -286,7 +300,7 @@ func (iState *iState) parseCmplxAndEval(partIndex, queryToParse string, valKind 
 
 	finalResult, err := resultStack.PopBool()
 	if err != nil {
-		iStateErr = NewError(err, 3021)
+		iStateErr = newError(err, 3021)
 		return
 	}
 	return
@@ -322,7 +336,7 @@ func (iState *iState) selectAndFetch(keyword string, indexKey string) (kindecesM
 	case slte:
 		kindecesMap, iStateErr = iState.fetchSlte(*stubP, indexKey, "")
 	default:
-		iStateErr = NewError(nil, 3005, keyword)
+		iStateErr = newError(nil, 3005, keyword)
 		return
 	}
 	return
@@ -359,7 +373,7 @@ func (iState *iState) selectAndFilter(keyword string, indexKey string, kindecesM
 	case slte:
 		evalAndFilterSlte(*stubP, encQKeyVal, kindecesMap)
 	default:
-		iStateErr = NewError(nil, 3005, keyword)
+		iStateErr = newError(nil, 3005, keyword)
 		return
 	}
 	return
@@ -394,7 +408,7 @@ func selectAndEval(keyword string, indexKey string, encKV map[string][]byte) (ma
 	case slte:
 		match, _ = evalSlte(indexKey, encKV)
 	default:
-		iStateErr = NewError(nil, 3005, keyword)
+		iStateErr = newError(nil, 3005, keyword)
 		return
 	}
 	return
@@ -407,7 +421,7 @@ func logicalEval(bool1 bool, bool2 bool, operator string) (result bool, iStateEr
 	case and:
 		return bool1 && bool2, nil
 	default:
-		iStateErr = NewError(nil, 7001, operator)
+		iStateErr = newError(nil, 7001, operator)
 		return
 	}
 }

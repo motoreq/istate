@@ -137,10 +137,10 @@ func (err iStateError) GetCode() int {
 	return err.Code
 }
 
-// NewError function is to create Errors in a more readable way.
-func NewError(err error, code int, params ...interface{}) Error {
-	iStateLogger.Debugf("Inside NewError")
-	defer iStateLogger.Debugf("Exiting NewError")
+// newError function is to create Errors in a more readable way.
+func newError(err error, code int, params ...interface{}) Error {
+	iStateLogger.Debugf("Inside newError")
+	defer iStateLogger.Debugf("Exiting newError")
 	msg := fmt.Sprintf("%d: ", code) + fmt.Sprintf(errorCodes[code], params...)
 	if err != nil {
 		msg = errorPrefix + msg + ": " + err.Error()

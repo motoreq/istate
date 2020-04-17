@@ -103,7 +103,7 @@ type queryEnv struct {
 	uindecesMap   map[string]map[string][]byte
 }
 
-// Query function is used to
+// Query function is used to perform Rich Queries over a state type in state db
 // "," separated objects are considered "or" always
 // queryString = [{"docType":"eq USERPROFILE_DOCTYPE", "doctor.whatever": "cmplx or(and(gt bla, lt bla),or(eq a, eq b))", "groups":["cmplx and(neq doctor, neq patient)"]}, {"docType":"eq USERPROFILE_DOCTYPE", "groups":["eq patient"]}]
 func (iState *iState) Query(stub shim.ChaincodeStubInterface, queryString string) (finalResult interface{}, iStateErr Error) {
@@ -117,7 +117,7 @@ func (iState *iState) Query(stub shim.ChaincodeStubInterface, queryString string
 	var uQuery []map[string]interface{}
 	err := json.Unmarshal([]byte(queryString), &uQuery)
 	if err != nil {
-		iStateErr = NewError(err, 3002)
+		iStateErr = newError(err, 3002)
 		return
 	}
 
@@ -153,7 +153,7 @@ func (iState *iState) parseAndEvalSingle(stub shim.ChaincodeStubInterface, uQuer
 
 	for index, val := range uQuery {
 		if val, ok := val.(string); !ok {
-			iStateErr = NewError(nil, 3003, reflect.TypeOf(val))
+			iStateErr = newError(nil, 3003, reflect.TypeOf(val))
 			return
 		}
 
@@ -209,7 +209,7 @@ func (iState *iState) parseAndEvalSingle(stub shim.ChaincodeStubInterface, uQuer
 		// case scmplx:
 		// 	querySet.scmplx = addKeyWithoutOverLap(querySet.scmplx, newIndex, newVal)
 		default:
-			iStateErr = NewError(nil, 3005, keyword)
+			iStateErr = newError(nil, 3005, keyword)
 			return
 		}
 

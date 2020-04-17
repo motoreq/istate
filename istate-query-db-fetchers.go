@@ -285,7 +285,7 @@ func (iState *iState) getStateByRange(stub shim.ChaincodeStubInterface, startKey
 	// Normal Index
 	iterator, err := stub.GetStateByRange(startKey, endKey)
 	if err != nil {
-		iStateErr = NewError(err, 3006)
+		iStateErr = newError(err, 3006)
 		return
 	}
 
@@ -293,7 +293,7 @@ func (iState *iState) getStateByRange(stub shim.ChaincodeStubInterface, startKey
 	for i := 0; iterator.HasNext(); i++ {
 		iteratorResult, err := iterator.Next()
 		if err != nil {
-			iStateErr = NewError(err, 3007)
+			iStateErr = newError(err, 3007)
 			return
 		}
 		indexkey := iteratorResult.GetKey()
@@ -328,7 +328,7 @@ func (iState *iState) getStateByRangeWithPagination(stub shim.ChaincodeStubInter
 	// Normal Index
 	iterator, _, err := stub.GetStateByRangeWithPagination(startKey, endKey, pageSize, bookmark)
 	if err != nil {
-		iStateErr = NewError(err, 3006)
+		iStateErr = newError(err, 3006)
 		return
 	}
 
@@ -336,7 +336,7 @@ func (iState *iState) getStateByRangeWithPagination(stub shim.ChaincodeStubInter
 	for i := 0; iterator.HasNext(); i++ {
 		iteratorResult, err := iterator.Next()
 		if err != nil {
-			iStateErr = NewError(err, 3007)
+			iStateErr = newError(err, 3007)
 			return
 		}
 		indexkey := iteratorResult.GetKey()
@@ -361,7 +361,7 @@ func loadFetchedKV(stub shim.ChaincodeStubInterface, fetchedKVMap map[string][]b
 	// Doesn't fetch if already fetched before
 	valBytes, err := stub.GetState(keyRef)
 	if err != nil {
-		iStateErr = NewError(err, 3008)
+		iStateErr = newError(err, 3008)
 		return
 	}
 	if valBytes != nil {
