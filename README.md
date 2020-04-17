@@ -205,6 +205,50 @@ func (sc *TestSmartContract) Query(stub shim.ChaincodeStubInterface) pb.Response
 }
 ```
 
+### Query Syntax
+
+Reference Struct: 
+```go
+struct TestStruct type {
+	ID      	string   		`json:"id" istate:"TestStruct_id" primary:"true"`
+	AString 	string   		`json:"aString" istate:"TestStruct_aString"`
+	AnInt   	int64    		`json:"anInt" istate:"TestStruct_anInt"`
+	ASlice  	[]string 		`json:"aSlice" istate:"TestStruct_aSlice"` 
+	AMap    	map[string]string 	`json:"aMap" istate:"TestStruct_aMap"`
+	ANestedStruct	SomeStruct		`json:"aNestedStruct" istate:"TestStruct_aNestedStruct"`
+}
+
+struct SomeStruct type {
+	NestedString 	string `json:"nestedString"`
+}
+```
+***Note: json tag must be present in all fields (including nested structs), istate tag is not necessary to be included in nested structs. iState will index nested structs and make it available for query automatically, if the parent struct field has istate tag.***
+
+- The base syntax of query is similar to that of a JSON array of objects ````[{"fieldname": "<operation> <value>"}]````.
+***Note: The fieldname in query should match the value of json tag in respective field and not the go struct's fieldname***
+
+- For nested structs, dot notation can be used. Eg: ````[{"aNestedStruct.nestedString": "eq awesome string"}]````
+
+- To search for elements in an array / slice, ````.*```` notation can be used. 
+Eg:  ````[{"aSlice.*": "eq one of awesome strings"}]````
+***Note: ```*``` can be used to fill a depth in a nested fieldname, if that depth represents a collection type such as array/slice/map***
+
+- To search for a map's key, Eg:  ````[{"aMap": "eq  mapkey"}]````
+
+- To search for map's value when key is not known, Eg: ````[{"aMap.*": "eq  map value"}]````
+
+- To search for a map's value when key is known, Eg: ````[{"aMap.mapkey": "eq  map value"}]````
+
+- To perform complex queries on a single field, ```cmplx``` syntax can be used. Eg: ````[{"anInt": "cmplx and(gt 100, lt 500)"}]````. Refer **Complex Queries** section below for more info.
+
+#### Primitive Queries
+
+##### Equal to (==)
+
+``` ```
+
+
+
 ### Reference
 
 `godoc` or https://godoc.org/github.com/prasanths96/iState
