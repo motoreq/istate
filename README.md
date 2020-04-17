@@ -91,11 +91,14 @@ func (sc *TestSmartContract) init() error {
 	iStateOpt := istate.Options{
 		CacheSize:             1000000,
 	}
+	
 	TestStructiState, err := istate.NewiState(TestStruct{}, iStateOpt)
 	if err != nil {
 		return err
 	}
+	
 	sc.TestStructiState = TestStructiState
+	
 	return nil
 }
 ```
@@ -105,15 +108,18 @@ func (sc *TestSmartContract) init() error {
 ```go
 func (sc *TestSmartContract) CreateState(stub shim.ChaincodeStubInterface) pb.Response {
 	var err error
+	
 	testStruct := TestStruct{
 		ID:      "unique_id_1",
 		AString: "John Doe",
 		AnInt:   100,
 	}	
+	
 	err = sc.TestStructiState.CreateState(stub, testStruct)
 	if err != nil {
 		return shim.Error(err.Error())
 	}
+	
 	output := fmt.Sprintf("Successfully saved: %v", testStruct)
 	return shim.Success([]byte(output))
 }
@@ -143,15 +149,18 @@ func (sc *TestSmartContract) ReadState(stub shim.ChaincodeStubInterface) pb.Resp
 ```go
 func (sc *TestSmartContract) UpdateState(stub shim.ChaincodeStubInterface) pb.Response {
 	var err error
+	
 	testStruct := TestStruct{
 		ID:      "unique_id_1",
 		AString: "John Doe Jr.",
 		AnInt:   200,
 	}	
+	
 	err = sc.TestStructiState.UpdateState(stub, testStruct)
 	if err != nil {
 		return shim.Error(err.Error())
 	}
+	
 	output := fmt.Sprintf("Successfully updated: %v", testStruct)
 	return shim.Success([]byte(output))
 }
@@ -162,10 +171,12 @@ func (sc *TestSmartContract) UpdateState(stub shim.ChaincodeStubInterface) pb.Re
 ```go
 func (sc *TestSmartContract) DeleteState(stub shim.ChaincodeStubInterface) pb.Response {
 	var err error
+	
 	err = sc.TestStructiState.DeleteState(stub, "unique_id_1")
 	if err != nil {
 		return shim.Error(err.Error())
 	}
+	
 	output := fmt.Sprintf("Successfully deleted: %v", "unique_id_1")
 	return shim.Success([]byte(output))
 }
