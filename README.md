@@ -54,7 +54,7 @@ The following tags must be added only to the struct types which is getting store
 ```go
 type TestStruct struct {
 	ID      string  `json:"id" istate:"TestStruct_id" primary:"true"`
-	AString string  `json:"docType" istate:"TestStruct_aString"`
+	AString string  `json:"aString" istate:"TestStruct_aString"`
 	AnInt   int64   `json:"anInt" istate:"TestStruct_anInt"`
 }
 ```
@@ -136,7 +136,6 @@ func (sc *TestSmartContract) ReadState(stub shim.ChaincodeStubInterface) pb.Resp
 	return shim.Success(nil)
 
 }
-
 ```
 
 #### Update State
@@ -169,6 +168,29 @@ func (sc *TestSmartContract) DeleteState(stub shim.ChaincodeStubInterface) pb.Re
 	}
 	output := fmt.Sprintf("Successfully deleted: %v", "unique_id_1")
 	return shim.Success([]byte(output))
+}
+```
+
+#### Query
+
+```go
+func (sc *TestSmartContract) Query(stub shim.ChaincodeStubInterface) pb.Response {
+	var err error
+	
+	queryString := `[{"anInt": "eq 200"}]`
+	
+	stateSliceInterface, err := sc.TestStructiState.Query(stub, queryString)
+	if err != nil {
+		return shim.Error(err.Error())
+	}
+	
+	result := stateSliceInterface.([]TestStruct)
+	for i := 0; i < len(result); i ++ {
+		fmt.Println("ID: ", result[i].ID, "AString:", result[i].AString)
+	}
+	
+	return shim.Success(nil)
+
 }
 ```
 
