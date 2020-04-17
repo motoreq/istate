@@ -80,7 +80,7 @@ func (iState *iState) fetchSgt(stub shim.ChaincodeStubInterface, encodedKey stri
 	switch isNum(removedVals[1]) {
 	case true:
 		//+1   //-1   //0
-		positive := false
+		var positive bool
 		positive, iStateErr = isPositive(removedVals[1])
 		if iStateErr != nil {
 			return
