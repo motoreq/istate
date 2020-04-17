@@ -84,7 +84,7 @@ func (iState *iState) traverseAndGenerateRelationalTable(val interface{}, tableN
 		}
 		// For empty slice as leaf value
 		if sliceLen == 0 && !isQuery {
-			tableNameString := joinStringInterfaceSlice(tableName, seperator)
+			tableNameString := joinStringInterfaceSlice(tableName, separator)
 			tableNameString = removeLastSeparators(tableNameString)
 			if tableNameString == iStateTag {
 				break
@@ -99,7 +99,7 @@ func (iState *iState) traverseAndGenerateRelationalTable(val interface{}, tableN
 		}
 	case reflect.Map:
 		mapKeys := reflect.ValueOf(val).MapKeys()
-		currentDepth := joinStringInterfaceSlice(append([]interface{}{jsonTag}, genericTableName...), seperator) + seperator
+		currentDepth := joinStringInterfaceSlice(append([]interface{}{jsonTag}, genericTableName...), separator) + separator
 
 		for i := 0; i < len(mapKeys); i++ {
 			var nextInitialTableName []interface{}
@@ -136,7 +136,7 @@ func (iState *iState) traverseAndGenerateRelationalTable(val interface{}, tableN
 		}
 		// For empty structs as leaf value
 		if len(mapKeys) == 0 && !isQuery {
-			tableNameString := joinStringInterfaceSlice(tableName, seperator)
+			tableNameString := joinStringInterfaceSlice(tableName, separator)
 			tableNameString = removeLastSeparators(tableNameString)
 			if tableNameString == iStateTag {
 				break
@@ -160,13 +160,13 @@ func (iState *iState) traverseAndGenerateRelationalTable(val interface{}, tableN
 		case true: //&& !addedGenericRow:
 
 			currentDepthStar = joinStringInterfaceSliceWithDotStar(append([]interface{}{jsonTag}, tableName[1:]...))
-			currentDepth = joinStringInterfaceSlice(append([]interface{}{jsonTag}, tableName[1:]...), seperator)
+			currentDepth = joinStringInterfaceSlice(append([]interface{}{jsonTag}, tableName[1:]...), separator)
 			newRow[fieldNameField] = currentDepthStar
 
 			kind, ok := iState.depthKindMap[currentDepth]
 			// Newly added
 			if !ok {
-				currentDepth = joinStringInterfaceSlice(append([]interface{}{jsonTag}, genericTableName...), seperator)
+				currentDepth = joinStringInterfaceSlice(append([]interface{}{jsonTag}, genericTableName...), separator)
 				kind, ok = iState.depthKindMap[currentDepth]
 			}
 			// Newly added end
@@ -186,7 +186,7 @@ func (iState *iState) traverseAndGenerateRelationalTable(val interface{}, tableN
 		default:
 
 			currentDepthStar = joinStringInterfaceSliceWithDotStar(append([]interface{}{jsonTag}, genericTableName...))
-			currentDepth = joinStringInterfaceSlice(append([]interface{}{jsonTag}, genericTableName...), seperator)
+			currentDepth = joinStringInterfaceSlice(append([]interface{}{jsonTag}, genericTableName...), separator)
 			newRow[fieldNameField] = currentDepthStar
 			newRow[docTypeField] = tableName
 			newRow[valueField] = reflect.ValueOf(val).Interface()
@@ -257,11 +257,11 @@ func (iState *iState) encodeState(oMap map[string]interface{}, keyref string, ha
 
 				switch separation {
 				case 0:
-					encodedKey = joinStringInterfaceSlice(encodedKeyParts, seperator) + seperator + encodedVal + seperator + keyref
+					encodedKey = joinStringInterfaceSlice(encodedKeyParts, separator) + separator + encodedVal + separator + keyref
 				case 1:
-					encodedKey = joinStringInterfaceSlice(encodedKeyParts, seperator) + seperator + encodedVal + seperator
+					encodedKey = joinStringInterfaceSlice(encodedKeyParts, separator) + separator + encodedVal + separator
 				case 2:
-					encodedKey = joinStringInterfaceSlice(encodedKeyParts, seperator) + seperator
+					encodedKey = joinStringInterfaceSlice(encodedKeyParts, separator) + separator
 				}
 
 				switch _, ok := encodedKeyValPairs[encodedKey]; ok {
@@ -748,7 +748,7 @@ func generateDepthKindMap(structRef interface{}, depthKindMap map[string]reflect
 	prefix := ""
 	switch len(meta) > 0 {
 	case true:
-		prefix = meta[0].(string) + seperator
+		prefix = meta[0].(string) + separator
 	default:
 		meta = []interface{}{"", 0}
 	}
@@ -805,7 +805,7 @@ func removeLastSeparators(input string) (val string) {
 	val = input
 	endIndex := -1
 	for i := len(input) - 1; i >= 0; i-- {
-		if input[i] != seperator[0] { // separator[0] is '_' (not "_")
+		if input[i] != separator[0] { // separator[0] is '_' (not "_")
 			break
 		}
 		endIndex = i
@@ -816,12 +816,12 @@ func removeLastSeparators(input string) (val string) {
 	return
 }
 
-func joinStringInterfaceSlice(slice []interface{}, seperatorString string) (joinedString string) {
+func joinStringInterfaceSlice(slice []interface{}, separatorString string) (joinedString string) {
 	if len(slice) > 0 {
 		joinedString = fmt.Sprintf("%v", slice[0])
 	}
 	for i := 1; i < len(slice); i++ {
-		joinedString += seperatorString + fmt.Sprintf("%v", slice[i])
+		joinedString += separatorString + fmt.Sprintf("%v", slice[i])
 	}
 	return
 }
@@ -843,7 +843,7 @@ func joinStringInterfaceSliceWithDotStar(slice []interface{}) (joinedString stri
 }
 
 func (iState *iState) convertIndexToQueryFieldName(index string) (joinedString string) {
-	splitFields := strings.Split(index, seperator)
+	splitFields := strings.Split(index, separator)
 	if len(splitFields) > 0 {
 		var ok bool
 		joinedString, ok = iState.istateJSONMap[splitFields[0]]
@@ -872,7 +872,7 @@ func initQueryEnv(qEnv *queryEnv) {
 func removeLastSeparator(key string) (outKey string) {
 	outKey = key
 	if len(key) != 0 {
-		if key[len(key)-1] == seperator[0] { // separator[0] is '_' (not "_")
+		if key[len(key)-1] == separator[0] { // separator[0] is '_' (not "_")
 			outKey = key[:len(key)-1]
 		}
 	}

@@ -72,7 +72,7 @@ func (iState *iState) parseCmplxAndFetch(partIndex, queryToParse string, valKind
 					return
 				}
 				// Full Index
-				indexKey := partIndex + encodedVal + seperator
+				indexKey := partIndex + encodedVal + separator
 
 				// Fetch only if it is the first arg / or operator
 				curOperator, err := operatorStack.ReadString()
@@ -231,7 +231,7 @@ func (iState *iState) parseCmplxAndEval(partIndex, queryToParse string, valKind 
 					return
 				}
 				// Full Index
-				indexKey := partIndex + encodedVal + seperator
+				indexKey := partIndex + encodedVal + separator
 
 				var match bool
 				match, iStateErr = selectAndEval(keyword, indexKey, encKV)

@@ -40,7 +40,7 @@ const (
 	dot  = "."
 
 	null      = "\000"
-	seperator = null
+	separator = null
 	asciiLast = "~"
 	incChar   = "\003" // This must not be less than other predefined symbols
 
