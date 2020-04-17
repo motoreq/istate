@@ -19,7 +19,7 @@ iState is a state management package for Hyperledger fabric chaincode. It can be
 
 ### Performance Chart
 
-![Legends](https://github.com/prasanths96/iState-extras/tree/master/readme-images/istate-1.png)
+![Legends](https://github.com/prasanths96/iState-extras/tree/master/readme-images/1.jpg)
 
 ### Installation
 
