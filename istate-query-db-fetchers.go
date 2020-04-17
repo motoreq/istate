@@ -58,7 +58,7 @@ func (iState *iState) fetchGt(stub shim.ChaincodeStubInterface, encodedKey strin
 	switch isNum(removedVals[1]) {
 	case true:
 		//+1   //-1   //0
-		positive := false
+		var positive bool
 		positive, iStateErr = isPositive(removedVals[1])
 		if iStateErr != nil {
 			return
@@ -105,7 +105,7 @@ func (iState *iState) fetchLt(stub shim.ChaincodeStubInterface, encodedKey strin
 	switch isNum(removedVals[1]) {
 	case true:
 		//+1   //-1   //0
-		positive := false
+		var positive bool
 		positive, iStateErr = isPositive(removedVals[1])
 		if iStateErr != nil {
 			return
@@ -154,7 +154,7 @@ func (iState *iState) fetchGte(stub shim.ChaincodeStubInterface, encodedKey stri
 	switch isNum(removedVals[1]) {
 	case true:
 		//+1   //-1   //0
-		positive := false
+		var positive bool
 		positive, iStateErr = isPositive(removedVals[1])
 		if iStateErr != nil {
 			return
@@ -201,7 +201,7 @@ func (iState *iState) fetchLte(stub shim.ChaincodeStubInterface, encodedKey stri
 	switch isNum(removedVals[1]) {
 	case true:
 		//+1   //-1   //0
-		positive := false
+		var positive bool
 		positive, iStateErr = isPositive(removedVals[1])
 		if iStateErr != nil {
 			return

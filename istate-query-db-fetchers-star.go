@@ -134,7 +134,7 @@ func (iState *iState) fetchSlt(stub shim.ChaincodeStubInterface, encodedKey stri
 	switch isNum(removedVals[1]) {
 	case true:
 		//+1   //-1   //0
-		positive := false
+		var positive bool
 		positive, iStateErr = isPositive(removedVals[1])
 		if iStateErr != nil {
 			return
@@ -189,7 +189,7 @@ func (iState *iState) fetchSgte(stub shim.ChaincodeStubInterface, encodedKey str
 	switch isNum(removedVals[1]) {
 	case true:
 		//+1   //-1   //0
-		positive := false
+		var positive bool
 		positive, iStateErr = isPositive(removedVals[1])
 		if iStateErr != nil {
 			return
@@ -242,7 +242,7 @@ func (iState *iState) fetchSlte(stub shim.ChaincodeStubInterface, encodedKey str
 	switch isNum(removedVals[1]) {
 	case true:
 		//+1   //-1   //0
-		positive := false
+		var positive bool
 		positive, iStateErr = isPositive(removedVals[1])
 		if iStateErr != nil {
 			return
@@ -322,7 +322,7 @@ func fetchSgtBlackList(stub shim.ChaincodeStubInterface, encodedKey string) (bla
 	switch isNum(removedVals[1]) {
 	case true:
 		//+1   //-1   //0
-		positive := false
+		var positive bool
 		positive, iStateErr = isPositive(removedVals[1])
 		if iStateErr != nil {
 			return
@@ -369,7 +369,7 @@ func fetchSltBlackList(stub shim.ChaincodeStubInterface, encodedKey string) (bla
 	switch isNum(removedVals[1]) {
 	case true:
 		//+1   //-1   //0
-		positive := false
+		var positive bool
 		positive, iStateErr = isPositive(removedVals[1])
 		if iStateErr != nil {
 			return
@@ -416,7 +416,7 @@ func fetchSgteBlackList(stub shim.ChaincodeStubInterface, encodedKey string) (bl
 	switch isNum(removedVals[1]) {
 	case true:
 		//+1   //-1   //0
-		positive := false
+		var positive bool
 		positive, iStateErr = isPositive(removedVals[1])
 		if iStateErr != nil {
 			return
@@ -463,7 +463,7 @@ func fetchSlteBlackList(stub shim.ChaincodeStubInterface, encodedKey string) (bl
 	switch isNum(removedVals[1]) {
 	case true:
 		//+1   //-1   //0
-		positive := false
+		var positive bool
 		positive, iStateErr = isPositive(removedVals[1])
 		if iStateErr != nil {
 			return

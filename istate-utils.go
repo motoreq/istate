@@ -153,8 +153,8 @@ func (iState *iState) traverseAndGenerateRelationalTable(val interface{}, tableN
 		}
 		var currentDepthStar string
 		var currentDepth string
-		newGenericTableName := []interface{}{iStateTag}
-		newGenericTableName = append(newGenericTableName, meta[1].([]interface{})...)
+		// newGenericTableName := []interface{}{iStateTag}
+		// newGenericTableName = append(newGenericTableName, meta[1].([]interface{})...)
 		newRow := make(map[string]interface{})
 		switch !isQuery {
 		case true: //&& !addedGenericRow:
@@ -186,7 +186,7 @@ func (iState *iState) traverseAndGenerateRelationalTable(val interface{}, tableN
 		default:
 
 			currentDepthStar = joinStringInterfaceSliceWithDotStar(append([]interface{}{jsonTag}, genericTableName...))
-			currentDepth = joinStringInterfaceSlice(append([]interface{}{jsonTag}, genericTableName...), separator)
+			// currentDepth = joinStringInterfaceSlice(append([]interface{}{jsonTag}, genericTableName...), separator)
 			newRow[fieldNameField] = currentDepthStar
 			newRow[docTypeField] = tableName
 			newRow[valueField] = reflect.ValueOf(val).Interface()
