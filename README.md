@@ -39,7 +39,7 @@ iState is a state management package for Hyperledger fabric chaincode. It can be
 
 * Copy the vendor folder in this repo and merge it with ```chaincode/vendor```
 
-Thats all, iState is ready to be imported in the chaincode.
+That's all, iState is ready to be imported in the chaincode.
 
 ### Example
 
