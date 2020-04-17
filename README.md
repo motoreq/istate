@@ -61,11 +61,17 @@ type TestStruct struct {
 
 #### Init
 
+- Init involves getting a new iState Interface for your struct type using ```istate.NewiState()``` function. It takes the empty struct value and ```istate.Options``` as input params. ```CacheSize``` in ```istate.Options``` indicate the maximum number of records that can be available in memory.
+- The returned ```istate.Interface``` can be stored as a field in main ```SmartContract``` struct. 
+- This interface can then be used to interact with iState package for performing CRUD or Query operation with this struct type (```TestStruct```) further along.
+
 ```go
 package main 
 
 import (
   "github.com/prasanths96/istate"
+  "github.com/hyperledger/fabric/core/chaincode/shim"
+  pb "github.com/hyperledger/fabric/protos/peer"
 )
 
 type TestSmartContract struct {
@@ -84,7 +90,6 @@ func (sc *TestSmartContract) Init(stub shim.ChaincodeStubInterface) pb.Response 
 func (sc *TestSmartContract) init() error {
 	iStateOpt := istate.Options{
 		CacheSize:             1000000,
-		DefaultCompactionSize: 10000,
 	}
 	TestStructiState, err := istate.NewiState(TestStruct{}, iStateOpt)
 	if err != nil {
@@ -92,6 +97,78 @@ func (sc *TestSmartContract) init() error {
 	}
 	sc.TestStructiState = TestStructiState
 	return nil
+}
+```
+
+#### Create State
+
+```go
+func (sc *TestSmartContract) CreateState(stub shim.ChaincodeStubInterface) pb.Response {
+	var err error
+	testStruct := TestStruct{
+		ID:      "unique_id_1",
+		AString: "John Doe",
+		AnInt:   100,
+	}	
+	err = sc.TestStructiState.CreateState(stub, testStruct)
+	if err != nil {
+		return shim.Error(err.Error())
+	}
+	output := fmt.Sprintf("Successfully saved: %v", testStruct)
+	return shim.Success([]byte(output))
+}
+```
+
+#### Read State
+
+```go
+func (sc *TestSmartContract) ReadState(stub shim.ChaincodeStubInterface) pb.Response {
+	var err error
+
+	stateInterface, err := sc.TestStructiState.ReadState(stub, "unique_id_1")
+	if err != nil {
+		return shim.Error(err.Error())
+	}
+	
+	actualState := stateInterface.(TestStruct)
+	fmt.Println("AString: ", actualState.AString)
+	
+	return shim.Success(nil)
+
+}
+
+```
+
+#### Update State
+
+```go
+func (sc *TestSmartContract) UpdateState(stub shim.ChaincodeStubInterface) pb.Response {
+	var err error
+	testStruct := TestStruct{
+		ID:      "unique_id_1",
+		AString: "John Doe Jr.",
+		AnInt:   200,
+	}	
+	err = sc.TestStructiState.UpdateState(stub, testStruct)
+	if err != nil {
+		return shim.Error(err.Error())
+	}
+	output := fmt.Sprintf("Successfully updated: %v", testStruct)
+	return shim.Success([]byte(output))
+}
+```
+
+#### Delete State
+
+```go
+func (sc *TestSmartContract) DeleteState(stub shim.ChaincodeStubInterface) pb.Response {
+	var err error
+	err = sc.TestStructiState.DeleteState(stub, "unique_id_1")
+	if err != nil {
+		return shim.Error(err.Error())
+	}
+	output := fmt.Sprintf("Successfully deleted: %v", "unique_id_1")
+	return shim.Success([]byte(output))
 }
 ```
 
