@@ -21,7 +21,7 @@ iState is a state management package for Hyperledger fabric chaincode. It can be
 
 #### Using govendor
 
-* Initialize vendor folder in your chaincode directory using ```govendor init```
+* Initialize vendor folder in the chaincode directory using ```govendor init```
 
 * Get the dependent packages using the following commands:
 
@@ -34,12 +34,66 @@ iState is a state management package for Hyperledger fabric chaincode. It can be
 
 * Clone this repository in a preferred location using ```git clone https://github.com/prasanths96/iState.git```.
 
-* Copy the ```.go``` files in this repo and paste inside ```yourchaincode/vendor/github.com/prasanths96/istate/``` 
+* Copy the ```.go``` files in this repo and paste inside ```chaincode/vendor/github.com/prasanths96/istate/``` 
 *(Note: No need to copy files inside folders.)* 
 
-* Copy the vendor folder in this repo and merge it with ```yourchaincode/vendor```
+* Copy the vendor folder in this repo and merge it with ```chaincode/vendor```
 
-Thats all, you're read to import this package in your chaincode.
+Thats all, iState is ready to be imported in the chaincode.
+
+### Example
+
+#### Adding tags to struct
+
+The following tags must be added only to the struct types which is getting stored in state db.
+
+- ```primary``` tag is used to denote the primary key / id in the struct. This field **must** contain universal unique value and is handled externally.
+- ```istate``` tag is used to denote the fields that is allowed to be queried. It is recommended to add this tag to all fields.
+- Value of ```istate``` tag must be universally unique with other structs in the chaincode. Recommended format: ```<structname>_<fieldname>```
+
+```go
+type TestStruct struct {
+	ID      string  `json:"id" istate:"TestStruct_id" primary:"true"`
+	AString string  `json:"docType" istate:"TestStruct_aString"`
+	AnInt   int64   `json:"anInt" istate:"TestStruct_anInt"`
+}
+```
+
+#### Init
+
+```go
+package main 
+
+import (
+  "github.com/prasanths96/istate"
+)
+
+type TestSmartContract struct {
+	TestStructiState istate.Interface
+}
+
+// Init initializes chaincode.
+func (sc *TestSmartContract) Init(stub shim.ChaincodeStubInterface) pb.Response {
+	err := sc.init()
+	if err != nil {
+		return shim.Error(err.Error())
+	}
+	return shim.Success(nil)
+}
+
+func (sc *TestSmartContract) init() error {
+	iStateOpt := istate.Options{
+		CacheSize:             1000000,
+		DefaultCompactionSize: 10000,
+	}
+	TestStructiState, err := istate.NewiState(TestStruct{}, iStateOpt)
+	if err != nil {
+		return err
+	}
+	sc.TestStructiState = TestStructiState
+	return nil
+}
+```
 
 ### Reference
 
