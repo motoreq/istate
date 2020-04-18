@@ -263,7 +263,7 @@ The relationship between two or more query objects inside the query array is alw
 - Eg: None of the elements equal to ````[{"aSlice.*": "^neq awesome string"}]````
 ***Note:````neq```` without ````^```` prefix will mean "atleast one element is not equal to."***
 
-- Eg: Atleast one element equal to ````[{"aSlice.*": "^eq awesome string"}]```` 
+- Eg: Atleast one element equal to ````[{"aSlice.*": "eq awesome string"}]```` 
 
 #### Primitive Queries
 
