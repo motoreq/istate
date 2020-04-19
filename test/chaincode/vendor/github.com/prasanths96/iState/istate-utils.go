@@ -20,7 +20,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/emirpasic/gods/trees/btree"
-	"github.com/hyperledger/fabric/core/chaincode/shim"
 	"reflect"
 	"strconv"
 	"strings"
@@ -908,7 +907,7 @@ func decodeScientificNotation(sciNot string) (decoded string, iStateErr Error) {
 	return
 }
 
-func (iState *iState) getBestEncodedKeyFunc(querySet querys) (bestKey string, fetchFunc func(shim.ChaincodeStubInterface, string, string) (map[string]map[string][]byte, Error), encodedKVSet encodedKVs, iStateErr Error) {
+func (iState *iState) getBestEncodedKeyFunc(querySet querys) (bestKey string, fetchFunc fetchFuncType, encodedKVSet encodedKVs, iStateErr Error) {
 	encodedKVSet = encodedKVs{
 		eq:    make(map[string][]byte),
 		neq:   make(map[string][]byte),
@@ -1027,7 +1026,7 @@ func hasLessOrEqStars(key1 string, key2 string) (ok bool) {
 	return
 }
 
-func (iState *iState) generateEncKeysAndAddToTree(query []map[string]interface{}, encKVMap map[string][]byte, fetchFunc func(shim.ChaincodeStubInterface, string, string) (map[string]map[string][]byte, Error), tree *btree.Tree, safe *safeKeyFunc) (iStateErr Error) {
+func (iState *iState) generateEncKeysAndAddToTree(query []map[string]interface{}, encKVMap map[string][]byte, fetchFunc fetchFuncType, tree *btree.Tree, safe *safeKeyFunc) (iStateErr Error) {
 	keyref := ""
 	for i := 0; i < len(query); i++ {
 		var encKeyDocNameMap map[string]string
@@ -1056,7 +1055,7 @@ func (iState *iState) generateEncKeysAndAddToTree(query []map[string]interface{}
 	return
 }
 
-func addToTree(tree *btree.Tree, encKey string, genericField string, numDocs int, fetchFunc func(shim.ChaincodeStubInterface, string, string) (map[string]map[string][]byte, Error), relatedEncKV map[string][]byte, relatedQueryP *[]map[string]interface{}, i int) {
+func addToTree(tree *btree.Tree, encKey string, genericField string, numDocs int, fetchFunc fetchFuncType, relatedEncKV map[string][]byte, relatedQueryP *[]map[string]interface{}, i int) {
 	efficientKey := efficientKeyType{
 		enckey:        encKey,
 		genericField:  genericField,

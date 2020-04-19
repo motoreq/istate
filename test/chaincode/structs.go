@@ -58,6 +58,7 @@ type DeleteStateInput struct {
 
 type QueryInput struct {
 	QueryString string `json:""queryString`
+	IsInvoke    bool   `json:"isInvoke"`
 }
 
 type QueryOut struct {

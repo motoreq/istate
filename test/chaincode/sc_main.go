@@ -238,7 +238,7 @@ func (sc *TestSmartContract) QueryState(stub shim.ChaincodeStubInterface) pb.Res
 		return shim.Error(err.Error())
 	}
 
-	result, err := sc.TestStructiState.Query(stub, input.QueryString)
+	result, err := sc.TestStructiState.Query(stub, input.QueryString, input.IsInvoke)
 	if err != nil {
 		return shim.Error(err.Error())
 	}

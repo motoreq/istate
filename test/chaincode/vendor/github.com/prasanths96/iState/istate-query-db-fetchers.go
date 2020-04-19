@@ -21,30 +21,30 @@ import (
 )
 
 // Cleanup -> stub is in meta data
-func (iState *iState) fetchEq(stub shim.ChaincodeStubInterface, encodedKey string, fieldName string) (kindecesMap map[string]map[string][]byte, iStateErr Error) {
+func (iState *iState) fetchEq(stub shim.ChaincodeStubInterface, encodedKey string, fieldName string, forceFetchDB bool) (kindecesMap map[string]map[string][]byte, iStateErr Error) {
 	kindecesMap = make(map[string]map[string][]byte)
 	start := encodedKey
 	end := encodedKey + asciiLast
-	iStateErr = iState.getStateByRange(stub, start, end, kindecesMap)
+	iStateErr = iState.getStateByRange(stub, start, end, kindecesMap, forceFetchDB)
 	if iStateErr != nil {
 		return
 	}
 	return
 }
 
-func (iState *iState) fetchNeq(stub shim.ChaincodeStubInterface, encodedKey string, fieldName string) (kindecesMap map[string]map[string][]byte, iStateErr Error) {
+func (iState *iState) fetchNeq(stub shim.ChaincodeStubInterface, encodedKey string, fieldName string, forceFetchDB bool) (kindecesMap map[string]map[string][]byte, iStateErr Error) {
 	kindecesMap = make(map[string]map[string][]byte)
 	partIndex, removedVals := removeNValsFromIndex(encodedKey, 2)
 	start1 := partIndex
 	end1 := partIndex + removedVals[1]
-	iStateErr = iState.getStateByRange(stub, start1, end1, kindecesMap)
+	iStateErr = iState.getStateByRange(stub, start1, end1, kindecesMap, forceFetchDB)
 	if iStateErr != nil {
 		return
 	}
 
 	start2 := partIndex + incLastChar(removedVals[1])
 	end2 := partIndex + asciiLast
-	iStateErr = iState.getStateByRange(stub, start2, end2, kindecesMap)
+	iStateErr = iState.getStateByRange(stub, start2, end2, kindecesMap, forceFetchDB)
 	if iStateErr != nil {
 		return
 	}
@@ -52,7 +52,7 @@ func (iState *iState) fetchNeq(stub shim.ChaincodeStubInterface, encodedKey stri
 	return
 }
 
-func (iState *iState) fetchGt(stub shim.ChaincodeStubInterface, encodedKey string, fieldName string) (kindecesMap map[string]map[string][]byte, iStateErr Error) {
+func (iState *iState) fetchGt(stub shim.ChaincodeStubInterface, encodedKey string, fieldName string, forceFetchDB bool) (kindecesMap map[string]map[string][]byte, iStateErr Error) {
 	kindecesMap = make(map[string]map[string][]byte)
 	partIndex, removedVals := removeNValsFromIndex(encodedKey, 2)
 	switch isNum(removedVals[1]) {
@@ -67,21 +67,21 @@ func (iState *iState) fetchGt(stub shim.ChaincodeStubInterface, encodedKey strin
 		case true:
 			start1 := partIndex + incLastChar(removedVals[1])
 			end1 := partIndex + biggestPNum
-			iStateErr = iState.getStateByRange(stub, start1, end1, kindecesMap)
+			iStateErr = iState.getStateByRange(stub, start1, end1, kindecesMap, forceFetchDB)
 			if iStateErr != nil {
 				return
 			}
 		default:
 			start1 := partIndex + nNumPrefix
 			end1 := partIndex + removedVals[1]
-			iStateErr = iState.getStateByRange(stub, start1, end1, kindecesMap)
+			iStateErr = iState.getStateByRange(stub, start1, end1, kindecesMap, forceFetchDB)
 			if iStateErr != nil {
 				return
 			}
 
 			start2 := partIndex + pNumPrefix
 			end2 := partIndex + pNumPrefix + asciiLast
-			iStateErr = iState.getStateByRange(stub, start2, end2, kindecesMap)
+			iStateErr = iState.getStateByRange(stub, start2, end2, kindecesMap, forceFetchDB)
 			if iStateErr != nil {
 				return
 			}
@@ -90,7 +90,7 @@ func (iState *iState) fetchGt(stub shim.ChaincodeStubInterface, encodedKey strin
 	default:
 		start2 := partIndex + removedVals[1] + incChar
 		end2 := partIndex + asciiLast
-		iStateErr = iState.getStateByRange(stub, start2, end2, kindecesMap)
+		iStateErr = iState.getStateByRange(stub, start2, end2, kindecesMap, forceFetchDB)
 		if iStateErr != nil {
 			return
 		}
@@ -99,7 +99,7 @@ func (iState *iState) fetchGt(stub shim.ChaincodeStubInterface, encodedKey strin
 	return
 }
 
-func (iState *iState) fetchLt(stub shim.ChaincodeStubInterface, encodedKey string, fieldName string) (kindecesMap map[string]map[string][]byte, iStateErr Error) {
+func (iState *iState) fetchLt(stub shim.ChaincodeStubInterface, encodedKey string, fieldName string, forceFetchDB bool) (kindecesMap map[string]map[string][]byte, iStateErr Error) {
 	kindecesMap = make(map[string]map[string][]byte)
 	partIndex, removedVals := removeNValsFromIndex(encodedKey, 2)
 	switch isNum(removedVals[1]) {
@@ -114,21 +114,21 @@ func (iState *iState) fetchLt(stub shim.ChaincodeStubInterface, encodedKey strin
 		case true:
 			start1 := partIndex + pNumPrefix
 			end1 := partIndex + removedVals[1]
-			iStateErr = iState.getStateByRange(stub, start1, end1, kindecesMap)
+			iStateErr = iState.getStateByRange(stub, start1, end1, kindecesMap, forceFetchDB)
 			if iStateErr != nil {
 				return
 			}
 
 			start2 := partIndex + nNumPrefix
 			end2 := partIndex + nNumPrefix + asciiLast
-			iStateErr = iState.getStateByRange(stub, start2, end2, kindecesMap)
+			iStateErr = iState.getStateByRange(stub, start2, end2, kindecesMap, forceFetchDB)
 			if iStateErr != nil {
 				return
 			}
 		default:
 			start1 := partIndex + incLastChar(removedVals[1])
 			end1 := partIndex + biggestNNum
-			iStateErr = iState.getStateByRange(stub, start1, end1, kindecesMap)
+			iStateErr = iState.getStateByRange(stub, start1, end1, kindecesMap, forceFetchDB)
 			if iStateErr != nil {
 				return
 			}
@@ -138,7 +138,7 @@ func (iState *iState) fetchLt(stub shim.ChaincodeStubInterface, encodedKey strin
 	default:
 		start1 := partIndex
 		end1 := partIndex + removedVals[1]
-		iStateErr = iState.getStateByRange(stub, start1, end1, kindecesMap)
+		iStateErr = iState.getStateByRange(stub, start1, end1, kindecesMap, forceFetchDB)
 		if iStateErr != nil {
 			return
 		}
@@ -148,7 +148,7 @@ func (iState *iState) fetchLt(stub shim.ChaincodeStubInterface, encodedKey strin
 
 }
 
-func (iState *iState) fetchGte(stub shim.ChaincodeStubInterface, encodedKey string, fieldName string) (kindecesMap map[string]map[string][]byte, iStateErr Error) {
+func (iState *iState) fetchGte(stub shim.ChaincodeStubInterface, encodedKey string, fieldName string, forceFetchDB bool) (kindecesMap map[string]map[string][]byte, iStateErr Error) {
 	kindecesMap = make(map[string]map[string][]byte)
 	partIndex, removedVals := removeNValsFromIndex(encodedKey, 2)
 	switch isNum(removedVals[1]) {
@@ -163,21 +163,21 @@ func (iState *iState) fetchGte(stub shim.ChaincodeStubInterface, encodedKey stri
 		case true:
 			start1 := partIndex + removedVals[1]
 			end1 := partIndex + biggestPNum
-			iStateErr = iState.getStateByRange(stub, start1, end1, kindecesMap)
+			iStateErr = iState.getStateByRange(stub, start1, end1, kindecesMap, forceFetchDB)
 			if iStateErr != nil {
 				return
 			}
 		default:
 			start1 := partIndex + nNumPrefix
 			end1 := partIndex + incLastChar(removedVals[1])
-			iStateErr = iState.getStateByRange(stub, start1, end1, kindecesMap)
+			iStateErr = iState.getStateByRange(stub, start1, end1, kindecesMap, forceFetchDB)
 			if iStateErr != nil {
 				return
 			}
 
 			start2 := partIndex + pNumPrefix
 			end2 := partIndex + pNumPrefix + asciiLast
-			iStateErr = iState.getStateByRange(stub, start2, end2, kindecesMap)
+			iStateErr = iState.getStateByRange(stub, start2, end2, kindecesMap, forceFetchDB)
 			if iStateErr != nil {
 				return
 			}
@@ -186,7 +186,7 @@ func (iState *iState) fetchGte(stub shim.ChaincodeStubInterface, encodedKey stri
 	default:
 		start2 := partIndex + removedVals[1]
 		end2 := partIndex + asciiLast
-		iStateErr = iState.getStateByRange(stub, start2, end2, kindecesMap)
+		iStateErr = iState.getStateByRange(stub, start2, end2, kindecesMap, forceFetchDB)
 		if iStateErr != nil {
 			return
 		}
@@ -195,7 +195,7 @@ func (iState *iState) fetchGte(stub shim.ChaincodeStubInterface, encodedKey stri
 	return
 }
 
-func (iState *iState) fetchLte(stub shim.ChaincodeStubInterface, encodedKey string, fieldName string) (kindecesMap map[string]map[string][]byte, iStateErr Error) {
+func (iState *iState) fetchLte(stub shim.ChaincodeStubInterface, encodedKey string, fieldName string, forceFetchDB bool) (kindecesMap map[string]map[string][]byte, iStateErr Error) {
 	kindecesMap = make(map[string]map[string][]byte)
 	partIndex, removedVals := removeNValsFromIndex(encodedKey, 2)
 	switch isNum(removedVals[1]) {
@@ -210,21 +210,21 @@ func (iState *iState) fetchLte(stub shim.ChaincodeStubInterface, encodedKey stri
 		case true:
 			start1 := partIndex + pNumPrefix
 			end1 := partIndex + incLastChar(removedVals[1])
-			iStateErr = iState.getStateByRange(stub, start1, end1, kindecesMap)
+			iStateErr = iState.getStateByRange(stub, start1, end1, kindecesMap, forceFetchDB)
 			if iStateErr != nil {
 				return
 			}
 
 			start2 := partIndex + nNumPrefix
 			end2 := partIndex + nNumPrefix + asciiLast
-			iStateErr = iState.getStateByRange(stub, start2, end2, kindecesMap)
+			iStateErr = iState.getStateByRange(stub, start2, end2, kindecesMap, forceFetchDB)
 			if iStateErr != nil {
 				return
 			}
 		default:
 			start1 := partIndex + removedVals[1]
 			end1 := partIndex + biggestNNum
-			iStateErr = iState.getStateByRange(stub, start1, end1, kindecesMap)
+			iStateErr = iState.getStateByRange(stub, start1, end1, kindecesMap, forceFetchDB)
 			if iStateErr != nil {
 				return
 			}
@@ -234,7 +234,7 @@ func (iState *iState) fetchLte(stub shim.ChaincodeStubInterface, encodedKey stri
 	default:
 		start1 := partIndex
 		end1 := partIndex + removedVals[1] + incChar
-		iStateErr = iState.getStateByRange(stub, start1, end1, kindecesMap)
+		iStateErr = iState.getStateByRange(stub, start1, end1, kindecesMap, forceFetchDB)
 		if iStateErr != nil {
 			return
 		}
@@ -243,7 +243,7 @@ func (iState *iState) fetchLte(stub shim.ChaincodeStubInterface, encodedKey stri
 	return
 }
 
-func (iState *iState) fetchCmplx(stub shim.ChaincodeStubInterface, encodedKey string, fieldName string) (kindecesMap map[string]map[string][]byte, iStateErr Error) {
+func (iState *iState) fetchCmplx(stub shim.ChaincodeStubInterface, encodedKey string, fieldName string, forceFetchDB bool) (kindecesMap map[string]map[string][]byte, iStateErr Error) {
 	kindecesMap = make(map[string]map[string][]byte)
 	partIndex, removedVals := removeNValsFromIndex(encodedKey, 2)
 
@@ -256,7 +256,7 @@ func (iState *iState) fetchCmplx(stub shim.ChaincodeStubInterface, encodedKey st
 		return
 	}
 
-	kindecesMap, iStateErr = iState.parseCmplxAndFetch(partIndex, removedVals[1], kind)
+	kindecesMap, iStateErr = iState.parseCmplxAndFetch(partIndex, removedVals[1], kind, forceFetchDB)
 	if iStateErr != nil {
 		return
 	}
@@ -265,7 +265,7 @@ func (iState *iState) fetchCmplx(stub shim.ChaincodeStubInterface, encodedKey st
 }
 
 // TODO Cache startKey, endKey too?
-func (iState *iState) getStateByRange(stub shim.ChaincodeStubInterface, startKey string, endKey string, kindecesMap map[string]map[string][]byte) (iStateErr Error) {
+func (iState *iState) getStateByRange(stub shim.ChaincodeStubInterface, startKey string, endKey string, kindecesMap map[string]map[string][]byte, forceFetchDB bool) (iStateErr Error) {
 
 	// // Compact Index
 	// cIndexKey, _ := generateCIndexKey(removeLastSeparator(startKey))
@@ -300,7 +300,7 @@ func (iState *iState) getStateByRange(stub shim.ChaincodeStubInterface, startKey
 		hashBytes := iteratorResult.GetValue()
 		keyRef := getKeyFromIndex(indexkey)
 
-		iStateErr = iState.loadkindecesMap(stub, kindecesMap, keyRef, string(hashBytes))
+		iStateErr = iState.loadkindecesMap(stub, kindecesMap, keyRef, string(hashBytes), forceFetchDB)
 		if iStateErr != nil {
 			return
 		}
@@ -370,18 +370,29 @@ func loadFetchedKV(stub shim.ChaincodeStubInterface, fetchedKVMap map[string][]b
 	}
 	return
 }
-func (iState *iState) loadkindecesMap(stub shim.ChaincodeStubInterface, kindecesMap map[string]map[string][]byte, keyRef string, newHash string) (iStateErr Error) {
-	// Hash validation for cache consistency
-	hashString, iStateErr := iState.getkvHash(keyRef)
-	if iStateErr != nil {
-		return
-	}
-	if hashString != newHash {
+func (iState *iState) loadkindecesMap(stub shim.ChaincodeStubInterface, kindecesMap map[string]map[string][]byte, keyRef string, newHash string, forceFetch bool) (iStateErr Error) {
+
+	switch forceFetch {
+	case true:
 		iStateErr = iState.removeCache(keyRef)
 		if iStateErr != nil {
 			return
 		}
+	default:
+		// Hash validation for cache consistency
+		var hashString string
+		hashString, iStateErr = iState.getkvHash(keyRef)
+		if iStateErr != nil {
+			return
+		}
+		if hashString != newHash {
+			iStateErr = iState.removeCache(keyRef)
+			if iStateErr != nil {
+				return
+			}
+		}
 	}
+
 	indeces, iStateErr := iState.getIndeces(keyRef)
 	if iStateErr != nil {
 		return
