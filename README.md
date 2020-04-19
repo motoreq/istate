@@ -1,4 +1,4 @@
-## iState [![GoDoc](https://godoc.org/github.com/prasanths96/iState?status.svg)](https://godoc.org/github.com/prasanths96/iState) [![Go Report Card](https://goreportcard.com/badge/github.com/prasanths96/iState)](https://goreportcard.com/report/github.com/prasanths96/iState)
+## iState [![GoDoc](https://godoc.org/github.com/motoreq/iState?status.svg)](https://godoc.org/github.com/motoreq/iState) [![Go Report Card](https://goreportcard.com/badge/github.com/motoreq/iState)](https://goreportcard.com/report/github.com/motoreq/iState)
 
 
 iState is a state management package for Hyperledger fabric chaincode. It can be used to perform high performance rich queries on leveldb.
@@ -27,7 +27,7 @@ iState is a state management package for Hyperledger fabric chaincode. It can be
 
 ### Releases
 
-- [v1.0 - April 17, 2020](https://github.com/prasanths96/iState/releases/tag/v1.0)
+- [v1.0 - April 17, 2020](https://github.com/motoreq/iState/releases/tag/v1.0)
 
 ### Installation
 
@@ -364,7 +364,7 @@ The relationship between two or more query objects inside the query array is alw
 
 ### Reference
 
-`godoc` or https://godoc.org/github.com/prasanths96/iState
+`godoc` or https://godoc.org/github.com/motoreq/iState
 
 ## License <a name="license"></a>
 
