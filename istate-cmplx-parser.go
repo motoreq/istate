@@ -24,7 +24,7 @@ import (
 
 // Clean this up...
 // Can make it smarter too...
-func (iState *iState) parseCmplxAndFetch(partIndex, queryToParse string, valKind reflect.Kind) (kindecesMap map[string]map[string][]byte, iStateErr Error) {
+func (iState *iState) parseCmplxAndFetch(partIndex, queryToParse string, valKind reflect.Kind, forceFetchDB bool) (kindecesMap map[string]map[string][]byte, iStateErr Error) {
 	operatorStack := gostack.NewStack()
 	resultStack := gostack.NewStack()
 	firstArgumentFlag := false
@@ -84,7 +84,7 @@ func (iState *iState) parseCmplxAndFetch(partIndex, queryToParse string, valKind
 				switch fetch {
 				case true:
 					var result map[string]map[string][]byte
-					result, iStateErr = iState.selectAndFetch(keyword, indexKey)
+					result, iStateErr = iState.selectAndFetch(keyword, indexKey, forceFetchDB)
 					if iStateErr != nil {
 						return
 					}
@@ -306,35 +306,35 @@ func (iState *iState) parseCmplxAndEval(partIndex, queryToParse string, valKind 
 	return
 }
 
-func (iState *iState) selectAndFetch(keyword string, indexKey string) (kindecesMap map[string]map[string][]byte, iStateErr Error) {
+func (iState *iState) selectAndFetch(keyword string, indexKey string, forceFetchDB bool) (kindecesMap map[string]map[string][]byte, iStateErr Error) {
 
 	stubP := iState.currentStub
 	switch keyword {
 	case eq:
-		kindecesMap, iStateErr = iState.fetchEq(*stubP, indexKey, "")
+		kindecesMap, iStateErr = iState.fetchEq(*stubP, indexKey, "", forceFetchDB)
 		// if iStateErr != nil {return}
 	case neq:
-		kindecesMap, iStateErr = iState.fetchNeq(*stubP, indexKey, "")
+		kindecesMap, iStateErr = iState.fetchNeq(*stubP, indexKey, "", forceFetchDB)
 	case gt:
-		kindecesMap, iStateErr = iState.fetchGt(*stubP, indexKey, "")
+		kindecesMap, iStateErr = iState.fetchGt(*stubP, indexKey, "", forceFetchDB)
 	case lt:
-		kindecesMap, iStateErr = iState.fetchLt(*stubP, indexKey, "")
+		kindecesMap, iStateErr = iState.fetchLt(*stubP, indexKey, "", forceFetchDB)
 	case gte:
-		kindecesMap, iStateErr = iState.fetchGte(*stubP, indexKey, "")
+		kindecesMap, iStateErr = iState.fetchGte(*stubP, indexKey, "", forceFetchDB)
 	case lte:
-		kindecesMap, iStateErr = iState.fetchLte(*stubP, indexKey, "")
+		kindecesMap, iStateErr = iState.fetchLte(*stubP, indexKey, "", forceFetchDB)
 	case seq:
-		kindecesMap, iStateErr = iState.fetchSeq(*stubP, indexKey, "")
+		kindecesMap, iStateErr = iState.fetchSeq(*stubP, indexKey, "", forceFetchDB)
 	case sneq:
-		kindecesMap, iStateErr = iState.fetchSneq(*stubP, indexKey, "")
+		kindecesMap, iStateErr = iState.fetchSneq(*stubP, indexKey, "", forceFetchDB)
 	case sgt:
-		kindecesMap, iStateErr = iState.fetchSgt(*stubP, indexKey, "")
+		kindecesMap, iStateErr = iState.fetchSgt(*stubP, indexKey, "", forceFetchDB)
 	case slt:
-		kindecesMap, iStateErr = iState.fetchSlt(*stubP, indexKey, "")
+		kindecesMap, iStateErr = iState.fetchSlt(*stubP, indexKey, "", forceFetchDB)
 	case sgte:
-		kindecesMap, iStateErr = iState.fetchSgte(*stubP, indexKey, "")
+		kindecesMap, iStateErr = iState.fetchSgte(*stubP, indexKey, "", forceFetchDB)
 	case slte:
-		kindecesMap, iStateErr = iState.fetchSlte(*stubP, indexKey, "")
+		kindecesMap, iStateErr = iState.fetchSlte(*stubP, indexKey, "", forceFetchDB)
 	default:
 		iStateErr = newError(nil, 3005, keyword)
 		return

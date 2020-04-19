@@ -81,10 +81,12 @@ type querys struct {
 	// scmplx []map[string]interface{}
 }
 
+type fetchFuncType func(shim.ChaincodeStubInterface, string, string, bool) (map[string]map[string][]byte, Error)
+
 type efficientKeyType struct {
 	enckey        string
 	genericField  string
-	fetchFunc     func(shim.ChaincodeStubInterface, string, string) (map[string]map[string][]byte, Error)
+	fetchFunc     fetchFuncType
 	relatedEncKV  map[string][]byte
 	relatedQueryP *[]map[string]interface{}
 	i             int
@@ -92,7 +94,7 @@ type efficientKeyType struct {
 
 type safeKeyFunc struct {
 	encKey        string
-	fetchFunc     func(shim.ChaincodeStubInterface, string, string) (map[string]map[string][]byte, Error)
+	fetchFunc     fetchFuncType
 	relatedEncKV  map[string][]byte
 	relatedQueryP *[]map[string]interface{}
 	i             int
@@ -106,7 +108,7 @@ type queryEnv struct {
 // Query function is used to perform Rich Queries over a state type in state db
 // "," separated objects are considered "or" always
 // queryString = [{"docType":"eq USERPROFILE_DOCTYPE", "doctor.whatever": "cmplx or(and(gt bla, lt bla),or(eq a, eq b))", "groups":["cmplx and(neq doctor, neq patient)"]}, {"docType":"eq USERPROFILE_DOCTYPE", "groups":["eq patient"]}]
-func (iState *iState) Query(stub shim.ChaincodeStubInterface, queryString string) (finalResult interface{}, iStateErr Error) {
+func (iState *iState) Query(stub shim.ChaincodeStubInterface, queryString string, isInvoke bool) (finalResult interface{}, iStateErr Error) {
 	iStateLogger.Infof("Inside Query")
 	defer iStateLogger.Infof("Exiting Query")
 	iState.setStub(&stub)
@@ -123,7 +125,7 @@ func (iState *iState) Query(stub shim.ChaincodeStubInterface, queryString string
 
 	filteredKeys := make([]map[string]map[string][]byte, len(uQuery), len(uQuery))
 	for i := 0; i < len(uQuery); i++ {
-		filteredKeys[i], iStateErr = iState.parseAndEvalSingle(stub, uQuery[i])
+		filteredKeys[i], iStateErr = iState.parseAndEvalSingle(stub, uQuery[i], isInvoke)
 		if iStateErr != nil {
 			return
 		}
@@ -146,7 +148,7 @@ func (iState *iState) Query(stub shim.ChaincodeStubInterface, queryString string
 	return
 }
 
-func (iState *iState) parseAndEvalSingle(stub shim.ChaincodeStubInterface, uQuery map[string]interface{}) (filteredKeys map[string]map[string][]byte, iStateErr Error) {
+func (iState *iState) parseAndEvalSingle(stub shim.ChaincodeStubInterface, uQuery map[string]interface{}, forceFetchDB bool) (filteredKeys map[string]map[string][]byte, iStateErr Error) {
 
 	// Fields will be declared automatically and make not needed
 	querySet := querys{}
@@ -216,7 +218,7 @@ func (iState *iState) parseAndEvalSingle(stub shim.ChaincodeStubInterface, uQuer
 	}
 
 	var bestKey string
-	var fetchFunc func(shim.ChaincodeStubInterface, string, string) (map[string]map[string][]byte, Error)
+	var fetchFunc fetchFuncType
 	var queryEncodedKVset encodedKVs
 
 	bestKey, fetchFunc, queryEncodedKVset, iStateErr = iState.getBestEncodedKeyFunc(querySet)
@@ -224,7 +226,7 @@ func (iState *iState) parseAndEvalSingle(stub shim.ChaincodeStubInterface, uQuer
 		return
 	}
 
-	kindecesMap, iStateErr := fetchFunc(stub, removeStarFromKey(bestKey), "index")
+	kindecesMap, iStateErr := fetchFunc(stub, removeStarFromKey(bestKey), "index", forceFetchDB)
 	evalAndFilterEq(stub, queryEncodedKVset.eq, kindecesMap)
 	evalAndFilterNeq(stub, queryEncodedKVset.neq, kindecesMap)
 	evalAndFilterGt(stub, queryEncodedKVset.gt, kindecesMap)

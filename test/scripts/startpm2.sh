@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-for i in {1..12}
+for i in {1..10}
 do
         pm2 start populate.sh --no-autorestart --name instance$i -- $i 
 done
