@@ -203,9 +203,12 @@ func (sc *TestSmartContract) Query(stub shim.ChaincodeStubInterface) pb.Response
 	queryString := `[{"anInt": "eq 200"}]`
 	
 	isInvoke := false	
-	// It is very important to set isInvoke to true, when Query is used for a invoke/write transaction.
+	
+	// Important! isInvoke must be set to true, when Query is used for a invoke/write transaction.
 	// It is not recommended to use Query during invoke transaction, when query results returned is 
-	// greater than 100 in number. The more the query results, the slower it will be to fetch when using isInvoke=true.
+	// greater than 100 in number. 
+	// The more the query results, the slower it will be to fetch when using isInvoke=true.
+	
 	stateSliceInterface, err := sc.TestStructiState.Query(stub, queryString, isInvoke)
 	if err != nil {
 		return shim.Error(err.Error())
