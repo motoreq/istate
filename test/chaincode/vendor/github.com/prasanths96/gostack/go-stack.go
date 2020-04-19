@@ -1,4 +1,4 @@
-// Copyright (c) 2020 Prasanth Sundaravelu
+// Copyright (c) 2020 Motoreq Infotech Pvt Ltd
 
 /*
 	Synchronized Stack accepting dynamic type
