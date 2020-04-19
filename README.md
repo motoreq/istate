@@ -37,16 +37,16 @@ iState is a state management package for Hyperledger fabric chaincode. It can be
 
 * Get the dependent packages using the following commands:
 
-  1. ```govendor fetch github.com/prasanths96/iState```
+  1. ```govendor fetch github.com/motoreq/iState```
   2. ```govendor fetch github.com/bluele/gcache```
   3. ```govendor fetch github.com/emirpasic/gods```
   4. ```govendor fetch github.com/prasanths96/gostack```
 
 #### Mannual method (No tools needed)
 
-* Clone this repository in a preferred location using ```git clone https://github.com/prasanths96/iState.git```.
+* Clone this repository in a preferred location using ```git clone https://github.com/motoreq/iState.git```.
 
-* Copy the ```.go``` files in this repo and paste inside ```chaincode/vendor/github.com/prasanths96/istate/``` 
+* Copy the ```.go``` files in this repo and paste inside ```chaincode/vendor/github.com/motoreq/istate/``` 
 *(Note: No need to copy files inside folders.)* 
 
 * Copy the vendor folder in this repo and merge it with ```chaincode/vendor```
@@ -81,7 +81,7 @@ type TestStruct struct {
 package main 
 
 import (
-  "github.com/prasanths96/istate"
+  "github.com/motoreq/istate"
   "github.com/hyperledger/fabric/core/chaincode/shim"
   pb "github.com/hyperledger/fabric/protos/peer"
 )
