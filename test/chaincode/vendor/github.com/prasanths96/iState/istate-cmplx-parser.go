@@ -17,6 +17,7 @@
 package istate
 
 import (
+	"github.com/hyperledger/fabric/core/chaincode/shim"
 	"github.com/prasanths96/gostack"
 	"reflect"
 	"strings"
@@ -24,7 +25,7 @@ import (
 
 // Clean this up...
 // Can make it smarter too...
-func (iState *iState) parseCmplxAndFetch(partIndex, queryToParse string, valKind reflect.Kind, forceFetchDB bool) (kindecesMap map[string]map[string][]byte, iStateErr Error) {
+func (iState *iState) parseCmplxAndFetch(stub shim.ChaincodeStubInterface, partIndex, queryToParse string, valKind reflect.Kind, forceFetchDB bool) (kindecesMap map[string]map[string][]byte, iStateErr Error) {
 	operatorStack := gostack.NewStack()
 	resultStack := gostack.NewStack()
 	firstArgumentFlag := false
@@ -84,7 +85,7 @@ func (iState *iState) parseCmplxAndFetch(partIndex, queryToParse string, valKind
 				switch fetch {
 				case true:
 					var result map[string]map[string][]byte
-					result, iStateErr = iState.selectAndFetch(keyword, indexKey, forceFetchDB)
+					result, iStateErr = iState.selectAndFetch(stub, keyword, indexKey, forceFetchDB)
 					if iStateErr != nil {
 						return
 					}
@@ -125,7 +126,7 @@ func (iState *iState) parseCmplxAndFetch(partIndex, queryToParse string, valKind
 						iStateErr = newError(err, 3021)
 						return
 					}
-					iStateErr = iState.selectAndFilter(keyword, indexKey, popped.(map[string]map[string][]byte))
+					iStateErr = iState.selectAndFilter(stub, keyword, indexKey, popped.(map[string]map[string][]byte))
 					if iStateErr != nil {
 						return
 					}
@@ -306,35 +307,34 @@ func (iState *iState) parseCmplxAndEval(partIndex, queryToParse string, valKind 
 	return
 }
 
-func (iState *iState) selectAndFetch(keyword string, indexKey string, forceFetchDB bool) (kindecesMap map[string]map[string][]byte, iStateErr Error) {
+func (iState *iState) selectAndFetch(stub shim.ChaincodeStubInterface, keyword string, indexKey string, forceFetchDB bool) (kindecesMap map[string]map[string][]byte, iStateErr Error) {
 
-	stubP := iState.currentStub
 	switch keyword {
 	case eq:
-		kindecesMap, iStateErr = iState.fetchEq(*stubP, indexKey, "", forceFetchDB)
+		kindecesMap, iStateErr = iState.fetchEq(stub, indexKey, "", forceFetchDB)
 		// if iStateErr != nil {return}
 	case neq:
-		kindecesMap, iStateErr = iState.fetchNeq(*stubP, indexKey, "", forceFetchDB)
+		kindecesMap, iStateErr = iState.fetchNeq(stub, indexKey, "", forceFetchDB)
 	case gt:
-		kindecesMap, iStateErr = iState.fetchGt(*stubP, indexKey, "", forceFetchDB)
+		kindecesMap, iStateErr = iState.fetchGt(stub, indexKey, "", forceFetchDB)
 	case lt:
-		kindecesMap, iStateErr = iState.fetchLt(*stubP, indexKey, "", forceFetchDB)
+		kindecesMap, iStateErr = iState.fetchLt(stub, indexKey, "", forceFetchDB)
 	case gte:
-		kindecesMap, iStateErr = iState.fetchGte(*stubP, indexKey, "", forceFetchDB)
+		kindecesMap, iStateErr = iState.fetchGte(stub, indexKey, "", forceFetchDB)
 	case lte:
-		kindecesMap, iStateErr = iState.fetchLte(*stubP, indexKey, "", forceFetchDB)
+		kindecesMap, iStateErr = iState.fetchLte(stub, indexKey, "", forceFetchDB)
 	case seq:
-		kindecesMap, iStateErr = iState.fetchSeq(*stubP, indexKey, "", forceFetchDB)
+		kindecesMap, iStateErr = iState.fetchSeq(stub, indexKey, "", forceFetchDB)
 	case sneq:
-		kindecesMap, iStateErr = iState.fetchSneq(*stubP, indexKey, "", forceFetchDB)
+		kindecesMap, iStateErr = iState.fetchSneq(stub, indexKey, "", forceFetchDB)
 	case sgt:
-		kindecesMap, iStateErr = iState.fetchSgt(*stubP, indexKey, "", forceFetchDB)
+		kindecesMap, iStateErr = iState.fetchSgt(stub, indexKey, "", forceFetchDB)
 	case slt:
-		kindecesMap, iStateErr = iState.fetchSlt(*stubP, indexKey, "", forceFetchDB)
+		kindecesMap, iStateErr = iState.fetchSlt(stub, indexKey, "", forceFetchDB)
 	case sgte:
-		kindecesMap, iStateErr = iState.fetchSgte(*stubP, indexKey, "", forceFetchDB)
+		kindecesMap, iStateErr = iState.fetchSgte(stub, indexKey, "", forceFetchDB)
 	case slte:
-		kindecesMap, iStateErr = iState.fetchSlte(*stubP, indexKey, "", forceFetchDB)
+		kindecesMap, iStateErr = iState.fetchSlte(stub, indexKey, "", forceFetchDB)
 	default:
 		iStateErr = newError(nil, 3005, keyword)
 		return
@@ -342,36 +342,35 @@ func (iState *iState) selectAndFetch(keyword string, indexKey string, forceFetch
 	return
 }
 
-func (iState *iState) selectAndFilter(keyword string, indexKey string, kindecesMap map[string]map[string][]byte) (iStateErr Error) {
+func (iState *iState) selectAndFilter(stub shim.ChaincodeStubInterface, keyword string, indexKey string, kindecesMap map[string]map[string][]byte) (iStateErr Error) {
 
-	stubP := iState.currentStub
 	encQKeyVal := make(map[string][]byte)
 	encQKeyVal[indexKey] = nil
 	switch keyword {
 	case eq:
-		evalAndFilterEq(*stubP, encQKeyVal, kindecesMap)
+		evalAndFilterEq(stub, encQKeyVal, kindecesMap)
 	case neq:
-		evalAndFilterNeq(*stubP, encQKeyVal, kindecesMap)
+		evalAndFilterNeq(stub, encQKeyVal, kindecesMap)
 	case gt:
-		evalAndFilterGt(*stubP, encQKeyVal, kindecesMap)
+		evalAndFilterGt(stub, encQKeyVal, kindecesMap)
 	case lt:
-		evalAndFilterLt(*stubP, encQKeyVal, kindecesMap)
+		evalAndFilterLt(stub, encQKeyVal, kindecesMap)
 	case gte:
-		evalAndFilterGte(*stubP, encQKeyVal, kindecesMap)
+		evalAndFilterGte(stub, encQKeyVal, kindecesMap)
 	case lte:
-		evalAndFilterLte(*stubP, encQKeyVal, kindecesMap)
+		evalAndFilterLte(stub, encQKeyVal, kindecesMap)
 	case seq:
-		evalAndFilterSeq(*stubP, encQKeyVal, kindecesMap)
+		evalAndFilterSeq(stub, encQKeyVal, kindecesMap)
 	case sneq:
-		evalAndFilterSneq(*stubP, encQKeyVal, kindecesMap)
+		evalAndFilterSneq(stub, encQKeyVal, kindecesMap)
 	case sgt:
-		evalAndFilterSgt(*stubP, encQKeyVal, kindecesMap)
+		evalAndFilterSgt(stub, encQKeyVal, kindecesMap)
 	case slt:
-		evalAndFilterSlt(*stubP, encQKeyVal, kindecesMap)
+		evalAndFilterSlt(stub, encQKeyVal, kindecesMap)
 	case sgte:
-		evalAndFilterSgte(*stubP, encQKeyVal, kindecesMap)
+		evalAndFilterSgte(stub, encQKeyVal, kindecesMap)
 	case slte:
-		evalAndFilterSlte(*stubP, encQKeyVal, kindecesMap)
+		evalAndFilterSlte(stub, encQKeyVal, kindecesMap)
 	default:
 		iStateErr = newError(nil, 3005, keyword)
 		return

@@ -109,9 +109,8 @@ type queryEnv struct {
 // "," separated objects are considered "or" always
 // queryString = [{"docType":"eq USERPROFILE_DOCTYPE", "doctor.whatever": "cmplx or(and(gt bla, lt bla),or(eq a, eq b))", "groups":["cmplx and(neq doctor, neq patient)"]}, {"docType":"eq USERPROFILE_DOCTYPE", "groups":["eq patient"]}]
 func (iState *iState) Query(stub shim.ChaincodeStubInterface, queryString string, isInvoke bool) (finalResult interface{}, iStateErr Error) {
-	iStateLogger.Infof("Inside Query")
-	defer iStateLogger.Infof("Exiting Query")
-	iState.setStub(&stub)
+	iStateLogger.Debugf("Inside Query")
+	defer iStateLogger.Debugf("Exiting Query")
 
 	qEnv := &queryEnv{}
 	initQueryEnv(qEnv)
@@ -136,7 +135,7 @@ func (iState *iState) Query(stub shim.ChaincodeStubInterface, queryString string
 	i := 0
 	for key := range combinedResults {
 		var uObj reflect.Value
-		uObj, iStateErr = iState.getuObj(key)
+		uObj, iStateErr = iState.getuObj(stub, key)
 		if iStateErr != nil {
 			return
 		}
@@ -153,8 +152,13 @@ func (iState *iState) parseAndEvalSingle(stub shim.ChaincodeStubInterface, uQuer
 	// Fields will be declared automatically and make not needed
 	querySet := querys{}
 
+	if len(uQuery) == 0 {
+		iStateErr = newError(nil, 3023)
+		return
+	}
+
 	for index, val := range uQuery {
-		if val, ok := val.(string); !ok {
+		if _, ok := val.(string); !ok {
 			iStateErr = newError(nil, 3003, reflect.TypeOf(val))
 			return
 		}

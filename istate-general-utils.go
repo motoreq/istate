@@ -23,12 +23,6 @@ import (
 	"strings"
 )
 
-//
-func (iState *iState) setStub(stub *shim.ChaincodeStubInterface) {
-	iState.currentStub = stub
-	return
-}
-
 // Note: It returns reflect.Value , not interface{}
 func (iState *iState) unmarshalToStruct(valBytes []byte) (uObj reflect.Value, iStateErr Error) {
 	singleElem := reflect.New(reflect.TypeOf(iState.structRef)).Interface()

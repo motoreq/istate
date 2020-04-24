@@ -256,7 +256,7 @@ func (iState *iState) fetchCmplx(stub shim.ChaincodeStubInterface, encodedKey st
 		return
 	}
 
-	kindecesMap, iStateErr = iState.parseCmplxAndFetch(partIndex, removedVals[1], kind, forceFetchDB)
+	kindecesMap, iStateErr = iState.parseCmplxAndFetch(stub, partIndex, removedVals[1], kind, forceFetchDB)
 	if iStateErr != nil {
 		return
 	}
@@ -372,32 +372,35 @@ func loadFetchedKV(stub shim.ChaincodeStubInterface, fetchedKVMap map[string][]b
 }
 func (iState *iState) loadkindecesMap(stub shim.ChaincodeStubInterface, kindecesMap map[string]map[string][]byte, keyRef string, newHash string, forceFetch bool) (iStateErr Error) {
 
+	var fetchedIndeces map[string][]byte
 	switch forceFetch {
 	case true:
-		iStateErr = iState.removeCache(keyRef)
+		fetchedIndeces, iStateErr = iState.getIndeces(stub, keyRef, true)
 		if iStateErr != nil {
 			return
 		}
 	default:
 		// Hash validation for cache consistency
 		var hashString string
-		hashString, iStateErr = iState.getkvHash(keyRef)
+		hashString, iStateErr = iState.getkvHash(stub, keyRef)
 		if iStateErr != nil {
 			return
 		}
-		if hashString != newHash {
-			iStateErr = iState.removeCache(keyRef)
+		switch hashString != newHash {
+		case true:
+			fetchedIndeces, iStateErr = iState.getIndeces(stub, keyRef, true)
+			if iStateErr != nil {
+				return
+			}
+		default:
+			fetchedIndeces, iStateErr = iState.getIndeces(stub, keyRef) // forceFetch is false, will return from cache
 			if iStateErr != nil {
 				return
 			}
 		}
 	}
 
-	indeces, iStateErr := iState.getIndeces(keyRef)
-	if iStateErr != nil {
-		return
-	}
-	kindecesMap[keyRef] = indeces
+	kindecesMap[keyRef] = fetchedIndeces
 
 	return
 }

@@ -66,7 +66,7 @@ var errorCodes = map[int]string{
 
 	// Query
 	3001: "Query: Marshal Error:",
-	3002: "Query: Unmarshal Error:",
+	3002: "Query: Invalid query syntax: Unmarshal Error:",
 	3003: "parseAndEvalSingle: Syntax error: Field value in query must be of type string. Received: %v",
 	3004: "parseAndEvalSingle: Syntax error: <Space> not found in %v",
 	3005: "Syntax error: Unknown keyword: %v",
@@ -87,6 +87,7 @@ var errorCodes = map[int]string{
 	3020: "parseCmplxAndFetch: Error when reading operator stack",
 	3021: "parseCmplxAndFetch: Error when popping result stack",
 	3022: "parseCmplxAndFetch: Error when popping opeartor stack",
+	3023: "parseAndEvalSingle: Invalid query, atleast one valid field name must be present.",
 
 	// General utils
 	4001: "convertObjToMap: Marshal Error",

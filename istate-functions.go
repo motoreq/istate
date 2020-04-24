@@ -42,8 +42,6 @@ type iState struct {
 	// Cache
 	kvCache   gcache.Cache
 	hashTable *crc64.Table
-
-	currentStub *shim.ChaincodeStubInterface
 }
 
 // Options is an input parameter for NewiState function.
@@ -60,8 +58,8 @@ type Options struct {
 // Further CRUD operation on the struct type can be performed using the interface returned.
 // It takes an empty struct value, Options as input and returns istate interface.
 func NewiState(object interface{}, opt Options) (iStateInterface Interface, iStateErr Error) {
-	iStateLogger.Infof("Inside NewiState")
-	defer iStateLogger.Infof("Exiting NewiState")
+	iStateLogger.Debugf("Inside NewiState")
+	defer iStateLogger.Debugf("Exiting NewiState")
 
 	filledRef := fillZeroValue(object)
 	// A map of JSON fieldname & it's position in the struct
@@ -110,17 +108,11 @@ func NewiState(object interface{}, opt Options) (iStateInterface Interface, iSta
 	// Cache
 	kvCache := gcache.New(opt.CacheSize).
 		ARC().
-		LoaderFunc(iStateIns.loader).
 		Build()
 
 	iStateIns.kvCache = kvCache
 	iStateInterface = iStateIns
 
-	fmt.Println("=============================================================")
-	fmt.Println("depthKindMap", depthKindMap)
-	fmt.Println("=============================================================")
-	fmt.Println("istateJSONMAP: ", istateJSONMap)
-	fmt.Println("=============================================================")
 	return
 }
 
@@ -131,10 +123,8 @@ func NewiState(object interface{}, opt Options) (iStateInterface Interface, iSta
 // Note: This function does not do state validations such as, checking whether state exists or not
 // before performing the operation.
 func (iState *iState) CreateState(stub shim.ChaincodeStubInterface, object interface{}) (iStateErr Error) {
-	iStateLogger.Infof("Inside CreateState")
-	defer iStateLogger.Infof("Exiting CreateState")
-
-	iState.setStub(&stub)
+	iStateLogger.Debugf("Inside CreateState")
+	defer iStateLogger.Debugf("Exiting CreateState")
 
 	if reflect.TypeOf(object) != reflect.TypeOf(iState.structRef) {
 		iStateErr = newError(nil, 1014, reflect.TypeOf(iState.structRef), reflect.TypeOf(object))
@@ -195,18 +185,14 @@ func (iState *iState) CreateState(stub shim.ChaincodeStubInterface, object inter
 // Note: This function does not do state validations such as, checking whether state exists or not
 // before performing the operation.
 func (iState *iState) ReadState(stub shim.ChaincodeStubInterface, primaryKey interface{}) (uObj interface{}, iStateErr Error) {
-	iStateLogger.Infof("Inside ReadState")
-	defer iStateLogger.Infof("Exiting ReadState")
-
-	iState.setStub(&stub)
+	iStateLogger.Debugf("Inside ReadState")
+	defer iStateLogger.Debugf("Exiting ReadState")
 
 	primaryKeyString := fmt.Sprintf("%v", primaryKey)
-
 	stateBytes, err := stub.GetState(primaryKeyString)
 	if err != nil {
 		iStateErr = newError(err, 1005)
 	}
-
 	if stateBytes == nil {
 		return
 	}
@@ -215,7 +201,6 @@ func (iState *iState) ReadState(stub shim.ChaincodeStubInterface, primaryKey int
 	if iStateErr != nil {
 		return
 	}
-
 	uObj = uObjReflect.Interface()
 
 	return
@@ -228,10 +213,8 @@ func (iState *iState) ReadState(stub shim.ChaincodeStubInterface, primaryKey int
 // Note: This function does not do state validations such as, checking whether state exists or not
 // before performing the operation.
 func (iState *iState) UpdateState(stub shim.ChaincodeStubInterface, object interface{}) (iStateErr Error) {
-	iStateLogger.Infof("Inside UpdateState")
-	defer iStateLogger.Infof("Exiting UpdateState")
-
-	iState.setStub(&stub)
+	iStateLogger.Debugf("Inside UpdateState")
+	defer iStateLogger.Debugf("Exiting UpdateState")
 
 	if reflect.TypeOf(object) != reflect.TypeOf(iState.structRef) {
 		iStateErr = newError(nil, 1015, reflect.TypeOf(iState.structRef), reflect.TypeOf(object))
@@ -292,6 +275,7 @@ func (iState *iState) UpdateState(stub shim.ChaincodeStubInterface, object inter
 	if iStateErr != nil {
 		return
 	}
+
 	// Main key - value
 	appendEncodedKeyValPairs[keyref] = mo
 
@@ -332,10 +316,8 @@ func (iState *iState) UpdateState(stub shim.ChaincodeStubInterface, object inter
 // Note: This function does not do state validations such as, checking whether state exists or not
 // before performing the operation.
 func (iState *iState) DeleteState(stub shim.ChaincodeStubInterface, primaryKey interface{}) (iStateErr Error) {
-	iStateLogger.Infof("Inside DeleteState")
-	defer iStateLogger.Infof("Exiting DeleteState")
-
-	iState.setStub(&stub)
+	iStateLogger.Debugf("Inside DeleteState")
+	defer iStateLogger.Debugf("Exiting DeleteState")
 
 	keyref := fmt.Sprintf("%v", primaryKey)
 
@@ -379,15 +361,14 @@ func (iState *iState) DeleteState(stub shim.ChaincodeStubInterface, primaryKey i
 		iState.decDocsCounter(index, count)
 	}
 
+	iState.removeCache(keyref)
 	return nil
 }
 
 //
 func (iState *iState) CompactIndex(stub shim.ChaincodeStubInterface) (iStateErr Error) {
-	iStateLogger.Infof("Inside CompactIndex")
-	defer iStateLogger.Infof("Exiting CompactIndex")
-
-	iState.setStub(&stub)
+	iStateLogger.Debugf("Inside CompactIndex")
+	defer iStateLogger.Debugf("Exiting CompactIndex")
 
 	uObj, iStateErr := convertObjToMap(iState.structRef)
 	if iStateErr != nil {
