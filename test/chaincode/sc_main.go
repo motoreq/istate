@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"github.com/hyperledger/fabric/core/chaincode/shim"
 	pb "github.com/hyperledger/fabric/protos/peer"
-	"github.com/prasanths96/istate"
+	"github.com/motoreq/istate"
 )
 
 type TestSmartContract struct {

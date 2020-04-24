@@ -15,19 +15,16 @@
 
 export GOPATH=/media/sf_Blockchain/medisot/gitrepo/gopath
 rm vendor/ -rf
-mkdir -p vendor/github.com/prasanths96/iState/
+mkdir -p vendor/github.com/motoreq/iState/
+mkdir -p vendor/github.com/prasanths96
 # cp ../../vendor . -rf
-cp ../../*.go vendor/github.com/prasanths96/iState
-rm $GOPATH/src/github.com/prasanths96/iState -rf
-mkdir -p $GOPATH/src/github.com/prasanths96/iState
-cp vendor/github.com/prasanths96/iState/* $GOPATH/src/github.com/prasanths96/iState/. -rf
+cp ../../*.go vendor/github.com/motoreq/iState
+rm $GOPATH/src/github.com/motoreq/iState -rf
+mkdir -p $GOPATH/src/github.com/motoreq/iState
+cp vendor/github.com/motoreq/iState/* $GOPATH/src/github.com/motoreq/iState/. -rf
 cp $GOPATH/src/github.com/emirpasic/ vendor/github.com/. -rf
 cp $GOPATH/src/github.com/bluele/ vendor/github.com/. -rf
+
 cp $GOPATH/src/github.com/prasanths96/gostack vendor/github.com/prasanths96/. -rf
-# rm $GOPATH/src/github.com/prasanths96/hyperledger/easycompositestate -rf
-# mkdir -p $GOPATH/src/github.com/prasanths96/hyperledger/easycompositestate
-# cp vendor/github.com/prasanths96/hyperledger/easycompositestate/* $GOPATH/src/github.com/prasanths96/hyperledger/easycompositestate/. -rf
-# rm $GOPATH/src/github.com/prasanths96/hyperledger/querylib -rf
-# mkdir -p $GOPATH/src/github.com/prasanths96/hyperledger/querylib
-# cp vendor/github.com/prasanths96/hyperledger/querylib/* $GOPATH/src/github.com/prasanths96/hyperledger/querylib/. -rf
+
 go build
