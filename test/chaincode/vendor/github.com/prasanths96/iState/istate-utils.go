@@ -418,20 +418,18 @@ func (iState *iState) findDifference(sourceObjMap map[string]interface{}, target
 			}
 
 		case fmt.Sprintf("%T", sourceObjMap[fieldName]) == "map[string]interface {}" || fmt.Sprintf("%T", targetObjMap[fieldName]) == "map[string]interface {}":
-			switch {
-			default:
-				var appendM, deleteM interface{}
 
-				appendM, deleteM, iStateErr = findMapDifference(sourceObjMap[fieldName], targetObjMap[fieldName])
-				if iStateErr != nil {
-					return
-				}
-				if appendM != nil && reflect.ValueOf(appendM).Len() != 0 {
-					appendOrModifyMap[fieldName] = appendM
-				}
-				if deleteM != nil && reflect.ValueOf(deleteM).Len() != 0 {
-					deleteMap[fieldName] = deleteM
-				}
+			var appendM, deleteM interface{}
+
+			appendM, deleteM, iStateErr = findMapDifference(sourceObjMap[fieldName], targetObjMap[fieldName])
+			if iStateErr != nil {
+				return
+			}
+			if appendM != nil && reflect.ValueOf(appendM).Len() != 0 {
+				appendOrModifyMap[fieldName] = appendM
+			}
+			if deleteM != nil && reflect.ValueOf(deleteM).Len() != 0 {
+				deleteMap[fieldName] = deleteM
 			}
 
 		default:
@@ -460,6 +458,23 @@ func (iState *iState) findDifference(sourceObjMap map[string]interface{}, target
 }
 
 func findSliceDifference(sourceS interface{}, targetS interface{}) (appendS interface{}, deleteS interface{}, iStateErr Error) {
+	sourceType := fmt.Sprintf("%v", reflect.TypeOf(sourceS))
+	targetType := fmt.Sprintf("%v", reflect.TypeOf(targetS))
+
+	switch sourceType == "<nil>" || targetType == "<nil>" {
+	case true:
+		switch sourceType {
+		// If both are nil
+		case targetType:
+			return
+		case "<nil>":
+			sourceS = reflect.New(reflect.TypeOf(targetS)).Elem().Interface()
+		default:
+			targetS = reflect.New(reflect.TypeOf(sourceS)).Elem().Interface()
+		}
+
+	}
+
 	if reflect.TypeOf(sourceS) != reflect.TypeOf(targetS) {
 		iStateErr = newError(nil, 2011, reflect.TypeOf(sourceS), reflect.TypeOf(targetS))
 		return
