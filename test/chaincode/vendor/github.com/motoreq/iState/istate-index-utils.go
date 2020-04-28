@@ -116,8 +116,9 @@ func deriveIndexKeys(indexKey string, isQuery bool) (derivedKeys []string) {
 	if len(splitParts) < 4 {
 		return
 	}
-	middleParts := splitParts[2 : len(splitParts)-1]
-	prefix := strings.Join(splitParts[:2], separator)
+
+	middleParts := splitParts[1 : len(splitParts)-1]
+	prefix := strings.Join(splitParts[:1], separator)
 	suffix := splitParts[len(splitParts)-1]
 	derivedKeys = deriveIndexPermutation(middleParts, prefix, suffix, isQuery)
 
@@ -128,6 +129,7 @@ func deriveIndexPermutation(vals []string, prefix string, suffix string, isQuery
 	maxCount := int(math.Pow(2, float64(numDigits)))
 	// We don't want 1111 -> which is already main index
 	permuteds = make([]string, maxCount-2)
+	var count int
 	for i := 1; i < maxCount-1; i++ {
 		permString := fmt.Sprintf("%v", strconv.FormatInt(int64(i), 2))
 
@@ -140,9 +142,17 @@ func deriveIndexPermutation(vals []string, prefix string, suffix string, isQuery
 			}
 			permString = string(bs) + permString
 		}
-		newIndex := asciiLast + removeSuffixZeros(permString) + separator + prefix + separator + getIndexPermVal(vals, permString, isQuery) + separator + suffix
-		permuteds[i-1] = newIndex
+		permVal, ignore := getIndexPermVal(vals, permString, isQuery)
+		if ignore {
+			continue
+		}
+		newIndex := asciiLast + removeSuffixZeros(permString) + separator + prefix + separator + permVal + separator + suffix
+		permuteds[count] = newIndex
+		count++
 	}
+
+	// Remove extra space from permuteds slice
+	permuteds = permuteds[:count]
 
 	return
 }
@@ -160,12 +170,17 @@ func removeSuffixZeros(val string) (removed string) {
 	return
 }
 
-func getIndexPermVal(vals []string, permString string, isQuery bool) (permVal string) {
+func getIndexPermVal(vals []string, permString string, isQuery bool) (permVal string, ignore bool) {
 	permVal = ""
 	for i := 0; i < len(permString); i++ {
 		presetFlag := false
 		if permString[i] == '1' {
-			permVal += vals[i]
+			val := vals[i]
+			if val == "*" || val == "" { // For query || for empty values -> index should not be generated
+				ignore = true
+				return
+			}
+			permVal += val
 			presetFlag = true
 		}
 		switch isQuery && !presetFlag {

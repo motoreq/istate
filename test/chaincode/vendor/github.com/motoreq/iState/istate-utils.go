@@ -270,7 +270,6 @@ func (iState *iState) encodeState(oMap map[string]interface{}, keyref string, ha
 					// encodedKeyValPairs[encodedKey] = []byte(keyref)
 					// encodedKeyValPairs[encodedKey] = nullByte
 					derivedKeys := deriveIndexKeys(encodedKey, isQuery)
-
 					switch isQuery {
 					case true:
 						// Selecting the one with less stars
@@ -859,8 +858,14 @@ func joinStringInterfaceSliceWithDotStar(slice []interface{}) (joinedString stri
 func (iState *iState) convertIndexToQueryFieldName(index string) (joinedString string) {
 	splitFields := strings.Split(index, separator)
 	if len(splitFields) > 0 {
+		// If permuted index, it will begin with ~<binary><separator><actual-istateTag>
+		var istateTagIndex int
+		if splitFields[0][0] == asciiLast[0] {
+			istateTagIndex = 1
+		}
+
 		var ok bool
-		joinedString, ok = iState.istateJSONMap[splitFields[0]]
+		joinedString, ok = iState.istateJSONMap[splitFields[istateTagIndex]]
 		if !ok {
 			// Not supposed to happen
 			panic(fmt.Sprintf("istate tag not found in istateJSONMap: %v", splitFields[0]))
