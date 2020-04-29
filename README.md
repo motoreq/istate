@@ -1,4 +1,4 @@
-## iState [![GoDoc](https://godoc.org/github.com/motoreq/iState?status.svg)](https://godoc.org/github.com/motoreq/iState) [![Go Report Card](https://goreportcard.com/badge/github.com/motoreq/iState)](https://goreportcard.com/report/github.com/motoreq/iState)
+## iState [![GoDoc](https://godoc.org/github.com/motoreq/istate?status.svg)](https://godoc.org/github.com/motoreq/istate) [![Go Report Card](https://goreportcard.com/badge/github.com/motoreq/istate)](https://goreportcard.com/report/github.com/motoreq/istate)
 
 
 iState is a state management package for Hyperledger fabric chaincode. It can be used to perform high performance rich queries on leveldb.
@@ -27,8 +27,8 @@ iState is a state management package for Hyperledger fabric chaincode. It can be
 
 ### Releases
 
-- [v1.0.1 - April 24, 2020](https://github.com/motoreq/iState/releases/tag/v1.0.1)
-- [v1.0 - April 17, 2020](https://github.com/motoreq/iState/releases/tag/v1.0)
+- [v1.0.1 - April 24, 2020](https://github.com/motoreq/istate/releases/tag/v1.0.1)
+- [v1.0 - April 17, 2020](https://github.com/motoreq/istate/releases/tag/v1.0)
 
 ### Installation
 
@@ -38,14 +38,14 @@ iState is a state management package for Hyperledger fabric chaincode. It can be
 
 * Get the dependent packages using the following commands:
 
-  1. ```govendor fetch github.com/motoreq/iState```
+  1. ```govendor fetch github.com/motoreq/istate```
   2. ```govendor fetch github.com/bluele/gcache```
   3. ```govendor fetch github.com/emirpasic/gods```
   4. ```govendor fetch github.com/prasanths96/gostack```
 
 #### Mannual method (No tools needed)
 
-* Clone this repository in a preferred location using ```git clone https://github.com/motoreq/iState.git```.
+* Clone this repository in a preferred location using ```git clone https://github.com/motoreq/istate.git```.
 
 * Copy the ```.go``` files in this repo and paste inside ```chaincode/vendor/github.com/motoreq/istate/``` 
 *(Note: No need to copy files inside folders.)* 
@@ -365,7 +365,7 @@ The relationship between two or more query objects inside the query array is alw
 
 ### Reference
 
-`godoc` or https://godoc.org/github.com/motoreq/iState
+`godoc` or https://godoc.org/github.com/motoreq/istate
 
 ## License <a name="license"></a>
 
