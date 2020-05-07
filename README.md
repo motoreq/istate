@@ -343,6 +343,7 @@ The relationship between two or more query objects inside the query array is alw
 
 ### Restrictions:
 - Cannot use type ```"interface{}"``` as field type.
+- Cannot use type ```"[]byte"``` as field type. Instead, ```string``` can be used. 
 - Cannot use the following ascii characters in the struct names or field values:
 	- ```"\000"```
 	- ```"\001"```
