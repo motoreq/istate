@@ -61,6 +61,8 @@ func NewiState(object interface{}, opt Options) (iStateInterface Interface, iSta
 	iStateLogger.Debugf("Inside NewiState")
 	defer iStateLogger.Debugf("Exiting NewiState")
 
+	fmt.Println("New istate")
+
 	filledRef := fillZeroValue(object)
 	// A map of JSON fieldname & it's position in the struct
 	fieldJSONIndexMap := make(map[string]int)

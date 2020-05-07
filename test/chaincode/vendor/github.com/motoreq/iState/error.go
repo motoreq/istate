@@ -63,6 +63,7 @@ var errorCodes = map[int]string{
 	2017: "numSign: Invalid number encoding",
 	2018: "generateistateJSONMap: Marshal error",
 	2019: "generateistateJSONMap: Unmarshal error",
+	2020: "generateDepthKindMap: []byte / []uint8 type is not allowed as field type. Use string instead.",
 
 	// Query
 	3001: "Query: Marshal Error:",
