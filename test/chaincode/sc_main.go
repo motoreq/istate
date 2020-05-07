@@ -83,6 +83,8 @@ func (sc *TestSmartContract) handleFunctions(stub shim.ChaincodeStubInterface) p
 		return sc.CreateState(stub)
 	case "UpdateState":
 		return sc.UpdateState(stub)
+	case "PartialUpdateState":
+		return sc.PartialUpdateState(stub)
 	case "ReadState":
 		return sc.ReadState(stub)
 	case "DeleteState":
@@ -253,6 +255,32 @@ func (sc *TestSmartContract) QueryState(stub shim.ChaincodeStubInterface) pb.Res
 	}
 	// _ = mr
 	return shim.Success(mr)
+
+}
+
+//
+func (sc *TestSmartContract) PartialUpdateState(stub shim.ChaincodeStubInterface) pb.Response {
+	var err error
+
+	_, args := stub.GetFunctionAndParameters()
+	if len(args) != 1 {
+		return shim.Error("Invalid no. of arguments - Expecting 1.")
+	}
+
+	var input PartialUpdateInput
+	inputJSON := args[0]
+
+	err = json.Unmarshal([]byte(inputJSON), &input)
+	if err != nil {
+		return shim.Error(err.Error())
+	}
+
+	err = sc.TestStructiState.PartialUpdateState(stub, input.PrimaryKey, input.PartialObject)
+	if err != nil {
+		return shim.Error(fmt.Sprintf("err %v, err==nil %v, type %T", err, err == nil, err))
+	}
+	output := fmt.Sprintf("Successfully updated: %v", input)
+	return shim.Success([]byte(output))
 
 }
 

@@ -42,6 +42,7 @@ var errorCodes = map[int]string{
 	1014: "CreateState: Struct with incorrect type passed: Expected - %v, Received - %v",
 	1015: "UpdateState: Struct with incorrect type passed: Expected - %v, Received - %v",
 	1016: "CompactIndex: DelState Error",
+	1017: "PartialUpdateState: State: %s does not exist",
 
 	// Util errors
 	2001: "json tag is not set for struct field: %s of type: %v",
