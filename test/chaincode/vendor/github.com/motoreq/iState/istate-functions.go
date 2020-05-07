@@ -61,8 +61,6 @@ func NewiState(object interface{}, opt Options) (iStateInterface Interface, iSta
 	iStateLogger.Debugf("Inside NewiState")
 	defer iStateLogger.Debugf("Exiting NewiState")
 
-	fmt.Println("New istate")
-
 	filledRef := fillZeroValue(object)
 	// A map of JSON fieldname & it's position in the struct
 	fieldJSONIndexMap := make(map[string]int)
@@ -208,7 +206,7 @@ func (iState *iState) ReadState(stub shim.ChaincodeStubInterface, primaryKey int
 	return
 }
 
-// UpdateState function is used to update a state from statedb.
+// UpdateState function is used to update a state in statedb.
 // It is a function in iState Interface and must be called via the Interface
 // returned by NewiState function.
 // It takes chaincode stub and the actual structure value as input params.
@@ -304,6 +302,123 @@ func (iState *iState) UpdateState(stub shim.ChaincodeStubInterface, object inter
 	}
 
 	iStateErr = iState.setCache(keyref, object, mo, hashString)
+	if iStateErr != nil {
+		return
+	}
+
+	return nil
+}
+
+// PartialUpdateState function is used to update a state in statedb partially.
+// It is a function in iState Interface and must be called via the Interface
+// returned by NewiState function.
+// It takes chaincode stub, state id / primary key and the partial structure value in the form of
+// map[string]interface{} as input params.
+// Note: This function does state validation, and returns error if state does not exist.
+func (iState *iState) PartialUpdateState(stub shim.ChaincodeStubInterface, primaryKey interface{}, partialObject map[string]interface{}) (iStateErr Error) {
+	iStateLogger.Debugf("Inside PartialUpdateState")
+	defer iStateLogger.Debugf("Exiting PartialUpdateState")
+
+	// Find primary key
+	keyref := fmt.Sprintf("%v", primaryKey)
+
+	stateBytes, err := stub.GetState(keyref)
+	if err != nil {
+		iStateErr = newError(err, 1017)
+	}
+
+	if stateBytes == nil {
+		iStateErr = newError(nil, 1017, keyref)
+		return
+	}
+
+	var source map[string]interface{}
+	err = json.Unmarshal(stateBytes, &source)
+	if err != nil {
+		iStateErr = newError(err, 1007)
+		return
+	}
+
+	var target map[string]interface{}
+	// Unmarshalling existing state first
+	err = json.Unmarshal(stateBytes, &target)
+	if err != nil {
+		iStateErr = newError(err, 1007)
+		return
+	}
+	// Now editing partial fields
+	mo, err := json.Marshal(partialObject)
+	if err != nil {
+		iStateErr = newError(err, 1006)
+		return
+	}
+	err = json.Unmarshal(mo, &target)
+	if err != nil {
+		iStateErr = newError(err, 1007)
+		return
+	}
+	finalmo, err := json.Marshal(target)
+	if err != nil {
+		iStateErr = newError(err, 1006)
+		return
+	}
+
+	appendOrModifyMap, deleteMap, iStateErr := iState.findDifference(source, target)
+	if iStateErr != nil {
+		return
+	}
+
+	if len(appendOrModifyMap) == 0 && len(deleteMap) == 0 {
+		iStateErr = newError(nil, 1004)
+		return
+	}
+
+	hashString := iState.hash(finalmo)
+	// Delete first, so that TestStruct_aMap_user1 (map key) does not get deleted.
+	// When updating same key of a map, the above key gets over-writted at first,
+	// then when deleting, the over-written key gets deleted.
+	deleteEncodedKeyValPairs, delDocsCounter, _, iStateErr := iState.encodeState(deleteMap, keyref, hashString)
+	if iStateErr != nil {
+		return
+	}
+	appendEncodedKeyValPairs, addDocsCounter, _, iStateErr := iState.encodeState(target, keyref, hashString)
+	if iStateErr != nil {
+		return
+	}
+
+	// Main key - value
+	appendEncodedKeyValPairs[keyref] = finalmo
+
+	for key := range deleteEncodedKeyValPairs {
+		err = stub.DelState(key)
+		if err != nil {
+			iStateErr = newError(err, 1008)
+			return
+		}
+	}
+	for key, val := range appendEncodedKeyValPairs {
+		err = stub.PutState(key, val)
+		if err != nil {
+			iStateErr = newError(err, 1009)
+			return
+		}
+	}
+
+	for index, count := range delDocsCounter {
+		iState.decDocsCounter(index, count)
+	}
+	for index, count := range addDocsCounter {
+		iState.incDocsCounter(index, count)
+	}
+
+	// Getting updated object in perfect structure (not in map[string]interface{})
+	uObjReflect, iStateErr := iState.unmarshalToStruct(finalmo)
+	if iStateErr != nil {
+		return
+	}
+	uObj := uObjReflect.Interface()
+
+	iStateErr = iState.setCache(keyref, uObj, finalmo, hashString)
 	if iStateErr != nil {
 		return
 	}

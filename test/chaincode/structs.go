@@ -54,6 +54,11 @@ type ReadStateInput struct {
 	ID string `json:"id"`
 }
 
+type PartialUpdateInput struct {
+	PartialObject map[string]interface{} `json:"partialObject"`
+	PrimaryKey    string                 `json:"primaryKey"`
+}
+
 type DeleteStateInput struct {
 	ID string `json:"id"`
 }

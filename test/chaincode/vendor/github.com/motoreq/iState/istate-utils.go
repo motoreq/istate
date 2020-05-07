@@ -67,8 +67,6 @@ func (iState *iState) traverseAndGenerateRelationalTable(val interface{}, tableN
 		meta = []interface{}{0, tableName}
 
 	}
-	fmt.Println("VAL: ", val)
-	fmt.Println("KIND: ", reflect.ValueOf(val).Kind())
 	switch kind := reflect.ValueOf(val).Kind(); kind {
 	case reflect.Slice, reflect.Array:
 		sliceLen := reflect.ValueOf(val).Len()
@@ -773,8 +771,6 @@ func generateDepthKindMap(structRef interface{}, depthKindMap map[string]reflect
 	case reflect.Slice, reflect.Array:
 		sliceLen := refVal.Len()
 		fieldName := prefix
-		fmt.Printf("%s\n", refVal.Type())
-		fmt.Println(fmt.Sprintf("%s", refVal.Type()) == "[]uint8")
 		switch fmt.Sprintf("%s", refVal.Type()) == "[]uint8" {
 		case true:
 			iStateErr = newError(nil, 2020)
