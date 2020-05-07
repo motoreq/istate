@@ -65,6 +65,7 @@ func (iState *iState) traverseAndGenerateRelationalTable(val interface{}, tableN
 		genericTableName = meta[1].([]interface{})
 	default:
 		meta = []interface{}{0, tableName}
+
 	}
 	switch kind := reflect.ValueOf(val).Kind(); kind {
 	case reflect.Slice, reflect.Array:
@@ -770,6 +771,14 @@ func generateDepthKindMap(structRef interface{}, depthKindMap map[string]reflect
 	case reflect.Slice, reflect.Array:
 		sliceLen := refVal.Len()
 		fieldName := prefix
+		switch fmt.Sprintf("%s", refVal.Type()) == "[]uint8" {
+		case true:
+			iStateErr = newError(nil, 2020)
+			return
+		default:
+			depthKindMap[fieldName] = refVal.Kind()
+			break
+		}
 		for i := 0; i < sliceLen; i++ {
 			innerVal := refVal.Index(i).Interface()
 			// At this depth, the value will be slice's index like 0,1,2, its type Int
