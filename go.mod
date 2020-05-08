@@ -18,6 +18,7 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prasanths96/gostack v0.0.0-20200415175206-72e0ab21e54b
 	github.com/spf13/viper v1.6.3 // indirect
+	github.com/stretchr/testify v1.4.0
 	github.com/sykesm/zap-logfmt v0.0.3 // indirect
 	go.uber.org/zap v1.15.0 // indirect
 	golang.org/x/crypto v0.0.0-20200429183012-4b2356b1ed79 // indirect
