@@ -1,7 +1,7 @@
-## iState [![GoDoc](https://godoc.org/github.com/motoreq/istate?status.svg)](https://godoc.org/github.com/motoreq/istate) [![Go Report Card](https://goreportcard.com/badge/github.com/motoreq/istate)](https://goreportcard.com/report/github.com/motoreq/istate)
+## istate [![GoDoc](https://godoc.org/github.com/motoreq/istate?status.svg)](https://godoc.org/github.com/motoreq/istate) [![Go Report Card](https://goreportcard.com/badge/github.com/motoreq/istate)](https://goreportcard.com/report/github.com/motoreq/istate)
 
 
-iState is a state management package for Hyperledger fabric chaincode. It can be used to perform high performance rich queries on leveldb.
+istate is a state management package for Hyperledger fabric chaincode. It can be used to perform high performance rich queries on leveldb.
 
 ### Features
 
@@ -32,27 +32,19 @@ iState is a state management package for Hyperledger fabric chaincode. It can be
 
 ### Installation
 
-#### Using govendor
+#### Using go mod
 
-* Initialize vendor folder in the chaincode directory using ```govendor init```
+* Initialize go.mod file in the chaincode directory using ```go mod init```
+* Get the shim package 
+	
+	```go get github.com/hyperledger/fabric/core/chaincode/shim@release-1.4```
 
-* Get the dependent packages using the following commands:
+That's all, istate is ready to be used in the chaincode.
 
-  1. ```govendor fetch github.com/motoreq/istate```
-  2. ```govendor fetch github.com/bluele/gcache```
-  3. ```govendor fetch github.com/emirpasic/gods```
-  4. ```govendor fetch github.com/prasanths96/gostack```
+* **Get Vendor Folder** (necessary only for fabric **v1.x**) 
 
-#### Mannual method (No tools needed)
+	```go mod vendor```
 
-* Clone this repository in a preferred location using ```git clone https://github.com/motoreq/istate.git```.
-
-* Copy the ```.go``` files in this repo and paste inside ```chaincode/vendor/github.com/motoreq/istate/``` 
-*(Note: No need to copy files inside folders.)* 
-
-* Copy the vendor folder in this repo and merge it with ```chaincode/vendor```
-
-That's all, iState is ready to be imported in the chaincode.
 
 ### Example
 
