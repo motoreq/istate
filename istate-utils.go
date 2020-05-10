@@ -433,9 +433,6 @@ func (iState *iState) findDifference(sourceObjMap map[string]interface{}, target
 			}
 
 		default:
-			fmt.Println("sourceObjMap[fieldName]: ", sourceObjMap[fieldName])
-			fmt.Println("FieldName: ", fieldName)
-			fmt.Println("Kind: ", reflect.ValueOf(sourceObjMap[fieldName]).Kind())
 			switch k := reflect.ValueOf(sourceObjMap[fieldName]).Kind(); k {
 			case reflect.Bool:
 				fallthrough

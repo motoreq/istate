@@ -253,9 +253,6 @@ func (iState *iState) UpdateState(stub shim.ChaincodeStubInterface, object inter
 		return
 	}
 
-	fmt.Println("Source: ", source)
-	fmt.Println("Target: ", target)
-
 	appendOrModifyMap, deleteMap, iStateErr := iState.findDifference(source, target)
 	if iStateErr != nil {
 		return
