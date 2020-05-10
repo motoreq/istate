@@ -27,6 +27,7 @@ iState is a state management package for Hyperledger fabric chaincode. It can be
 
 ### Releases
 
+- [v1.0.2 - May 11, 2020](https://github.com/motoreq/istate/releases/tag/v1.0.2)
 - [v1.0.1 - April 24, 2020](https://github.com/motoreq/istate/releases/tag/v1.0.1)
 - [v1.0 - April 17, 2020](https://github.com/motoreq/istate/releases/tag/v1.0)
 
