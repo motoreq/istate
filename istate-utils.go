@@ -433,7 +433,6 @@ func (iState *iState) findDifference(sourceObjMap map[string]interface{}, target
 			}
 
 		default:
-
 			switch k := reflect.ValueOf(sourceObjMap[fieldName]).Kind(); k {
 			case reflect.Bool:
 				fallthrough
@@ -448,8 +447,17 @@ func (iState *iState) findDifference(sourceObjMap map[string]interface{}, target
 					appendOrModifyMap[fieldName] = targetObjMap[fieldName]
 					deleteMap[fieldName] = sourceObjMap[fieldName]
 				}
+			case reflect.Invalid:
+				switch kt := reflect.ValueOf(targetObjMap[fieldName]).Kind(); kt {
+				// If both are invalid, continue (empty complex type objects returns invalid)
+				case reflect.Invalid:
+					continue
+				default:
+					appendOrModifyMap[fieldName] = targetObjMap[fieldName]
+				}
 			default:
 				iStateErr = newError(nil, 2010, k)
+				return
 			}
 		}
 
