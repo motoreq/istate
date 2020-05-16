@@ -185,7 +185,6 @@ func (sc *TestSmartContract) ReadState(stub shim.ChaincodeStubInterface) pb.Resp
 		return shim.Error(err.Error())
 	}
 
-
 	ms, err := json.Marshal(stateInterface)
 	if err != nil {
 		return shim.Error(err.Error())

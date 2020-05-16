@@ -17,6 +17,6 @@
 package main
 
 const (
-	createStateCount = 1
+	createStateCount = 10
 	queryNum         = 1000
 )

@@ -30,7 +30,7 @@ func CreateState(test *testing.T, stub *shim.MockStub, input TestStruct, txID in
 	return Invoke(test, stub, txID, "CreateState", inputString)
 }
 
-func StateOperation(test *testing.T, stub *shim.MockStub, input interface{}, txID int,operation string) pb.Response {
+func StateOperation(test *testing.T, stub *shim.MockStub, input interface{}, txID int, operation string) pb.Response {
 	inputString, err := MarshalAndStringify(input)
 	if err != nil {
 		test.FailNow()
