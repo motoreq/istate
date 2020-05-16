@@ -71,34 +71,34 @@ func TestQueryState(test *testing.T)  {
 	}
 }
 
-// func TestUpdateState(test *testing.T){
-// 	asrt := assert.New(test)
-// 	for i := 0; i < createStateCount; i++ {
-// 		txCounter++
-// 		input := TestStruct{
-// 			DocType: "bleh",
-// 			ID:      "bleh" + strconv.Itoa(i),
-// 			AnInt:   -1, // New value for AnInt
-// 		}
-// 		resp := StateOperation(test, stub, input, txCounter,"UpdateState")
-// 		asrt.Equal(200,int(resp.Status),resp.Message)
-// 	}
-// }
+func TestUpdateState(test *testing.T){
+	asrt := assert.New(test)
+	for i := 0; i < createStateCount; i++ {
+		txCounter++
+		input := TestStruct{
+			DocType: "bleh",
+			ID:      "bleh" + strconv.Itoa(i),
+			AnInt:   -2, // New value for AnInt
+		}
+		resp := StateOperation(test, stub, input, txCounter,"UpdateState")
+		asrt.Equal(200,int(resp.Status),resp.Message)
+	}
+}
 
-// func TestPartialUpdateState(test *testing.T)  {
-// 	asrt := assert.New(test)
-// 	var partialObject = make(map[string]interface{})
-// 	partialObject["anInt"] = -1
-// 	for i := 0; i < createStateCount; i++ {
-// 		txCounter++
-// 		input := PartialUpdateInput{
-// 			PrimaryKey:      "bleh" + strconv.Itoa(i),
-// 			PartialObject:    partialObject,// New value for AnInt
-// 		}
-// 		resp := StateOperation(test, stub, input, txCounter,"PartialUpdateState")
-// 		asrt.Equal(200,int(resp.Status),resp.Message)
-// 	}
-// }
+func TestPartialUpdateState(test *testing.T)  {
+	asrt := assert.New(test)
+	var partialObject = make(map[string]interface{})
+	partialObject["anInt"] = -1
+	for i := 0; i < createStateCount; i++ {
+		txCounter++
+		input := PartialUpdateInput{
+			PrimaryKey:      "bleh" + strconv.Itoa(i),
+			PartialObject:    partialObject,// New value for AnInt
+		}
+		resp := StateOperation(test, stub, input, txCounter,"PartialUpdateState")
+		asrt.Equal(200,int(resp.Status),resp.Message)
+	}
+}
 
 func TestDeleteState(test *testing.T){
 	asrt := assert.New(test)
