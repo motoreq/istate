@@ -1,7 +1,7 @@
-## istate [![GoDoc](https://godoc.org/github.com/motoreq/istate?status.svg)](https://godoc.org/github.com/motoreq/istate) [![Go Report Card](https://goreportcard.com/badge/github.com/motoreq/istate)](https://goreportcard.com/report/github.com/motoreq/istate)
+## iState [![GoDoc](https://godoc.org/github.com/motoreq/istate?status.svg)](https://godoc.org/github.com/motoreq/istate) [![Go Report Card](https://goreportcard.com/badge/github.com/motoreq/istate)](https://goreportcard.com/report/github.com/motoreq/istate)
 
 
-istate is a state management package for Hyperledger fabric chaincode. It can be used to perform high performance rich queries on leveldb.
+iState is a state management package for Hyperledger fabric chaincode. It can be used to perform high performance rich queries on leveldb.
 
 ### Features
 
@@ -39,6 +39,7 @@ istate is a state management package for Hyperledger fabric chaincode. It can be
 * Get the shim package 
 	
 	```go get github.com/hyperledger/fabric/core/chaincode/shim@release-1.4```
+* Add ```github.com/motoreq/istate``` to import statement
 
 That's all, istate is ready to be used in the chaincode.
 
