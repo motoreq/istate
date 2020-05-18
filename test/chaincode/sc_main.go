@@ -75,8 +75,8 @@ func (sc *TestSmartContract) Query(stub shim.ChaincodeStubInterface) pb.Response
 
 func (sc *TestSmartContract) handleFunctions(stub shim.ChaincodeStubInterface) pb.Response {
 	function, _ := stub.GetFunctionAndParameters()
-	fmt.Println("Function:")
-	fmt.Println(function)
+	// fmt.Println("Function:")
+	// fmt.Println(function)
 
 	switch function {
 	case "CreateState":
@@ -184,8 +184,6 @@ func (sc *TestSmartContract) ReadState(stub shim.ChaincodeStubInterface) pb.Resp
 	if err != nil {
 		return shim.Error(err.Error())
 	}
-
-	fmt.Println("id: ", input.ID, "Val: ", stateInterface)
 
 	ms, err := json.Marshal(stateInterface)
 	if err != nil {

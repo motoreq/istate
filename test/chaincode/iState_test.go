@@ -17,25 +17,23 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/hyperledger/fabric/core/chaincode/shim"
+	"github.com/stretchr/testify/assert"
 	"strconv"
 	"testing"
 )
 
 var stub *shim.MockStub
+var txCounter int
 
 func TestInit(test *testing.T) {
 	stub = InitChaincode(test)
 }
 
-func TestFlows(test *testing.T) {
-	var txCounter = 0
-
-	// Create Lists
-	var createdList = make([]string, createStateCount, createStateCount)
-
-	// Success cases
+func TestCreateState(test *testing.T) {
+	asrt := assert.New(test)
 	for i := 0; i < createStateCount; i++ {
 		txCounter++
 		input := TestStruct{
@@ -44,25 +42,73 @@ func TestFlows(test *testing.T) {
 			AnInt:   createStateCount,
 		}
 		resp := CreateState(test, stub, input, txCounter)
-		if resp.Status != shim.OK {
-			test.Fail()
-		}
-		resultString := string(resp.Payload)
-		fmt.Println(resultString)
-		createdList[i] = "bleh" + strconv.Itoa(i)
+		asrt.Equal(200, int(resp.Status), resp.Message)
 	}
+}
 
-	// Query
+func TestReadStateById(test *testing.T) {
+	var id string
+	asrt := assert.New(test)
+	for i := 0; i < createStateCount; i++ {
+		id = "bleh" + strconv.Itoa(i)
+		var input = ReadStateInput{id}
+		resp := StateOperation(test, stub, input, txCounter, "ReadState")
+		asrt.Equal(200, int(resp.Status), resp.Message)
+	}
+}
+
+func TestQueryState(test *testing.T) {
+	asrt := assert.New(test)
 	for i := 0; i < queryNum; i++ {
 		txCounter++
 		input := QueryInput{
 			QueryString: `[{"anInt":"eq ` + strconv.Itoa(createStateCount) + `"}]`,
 		}
-		resp := QueryState(test, stub, input, txCounter)
-		if resp.Status != shim.OK {
-			test.Fail()
-		}
-		fmt.Println("Query Resp: ", string(resp.GetPayload()))
+		resp := StateOperation(test, stub, input, txCounter, "QueryState")
+		asrt.Equal(200, int(resp.Status), resp.Message)
+		var output QueryOut
+		json.Unmarshal(resp.Payload, &output)
+		asrt.Equal(createStateCount, len(output.Result), fmt.Sprintf("Should be %d", createStateCount))
 	}
+}
 
+func TestUpdateState(test *testing.T) {
+	asrt := assert.New(test)
+	for i := 0; i < createStateCount; i++ {
+		txCounter++
+		input := TestStruct{
+			DocType: "bleh",
+			ID:      "bleh" + strconv.Itoa(i),
+			AnInt:   -2, // New value for AnInt
+		}
+		resp := StateOperation(test, stub, input, txCounter, "UpdateState")
+		asrt.Equal(200, int(resp.Status), resp.Message)
+	}
+}
+
+func TestPartialUpdateState(test *testing.T) {
+	asrt := assert.New(test)
+	var partialObject = make(map[string]interface{})
+	partialObject["anInt"] = -1
+	for i := 0; i < createStateCount; i++ {
+		txCounter++
+		input := PartialUpdateInput{
+			PrimaryKey:    "bleh" + strconv.Itoa(i),
+			PartialObject: partialObject, // New value for AnInt
+		}
+		resp := StateOperation(test, stub, input, txCounter, "PartialUpdateState")
+		asrt.Equal(200, int(resp.Status), resp.Message)
+	}
+}
+
+func TestDeleteState(test *testing.T) {
+	asrt := assert.New(test)
+	for i := 0; i < createStateCount; i++ {
+		txCounter++
+		input := DeleteStateInput{
+			ID: "bleh" + strconv.Itoa(i),
+		}
+		resp := StateOperation(test, stub, input, txCounter, "DeleteState")
+		asrt.Equal(200, int(resp.Status), resp.Message)
+	}
 }

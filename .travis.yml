@@ -1,0 +1,14 @@
+language: go
+go:
+  - 1.12.x
+env:
+  - GO111MODULE=on
+git:
+  depth: 1
+jobs:
+  include:
+    - name: build
+      script: go build
+    - name: test
+      script:
+        - cd test/chaincode && go test -v
