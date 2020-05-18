@@ -1,4 +1,4 @@
-## iState [![GoDoc](https://godoc.org/github.com/motoreq/istate?status.svg)](https://godoc.org/github.com/motoreq/istate) [![Go Report Card](https://goreportcard.com/badge/github.com/motoreq/istate)](https://goreportcard.com/report/github.com/motoreq/istate)
+## iState [![GoDoc](https://godoc.org/github.com/motoreq/istate?status.svg)](https://godoc.org/github.com/motoreq/istate) [![Go Report Card](https://goreportcard.com/badge/github.com/motoreq/istate)](https://goreportcard.com/report/github.com/motoreq/istate) [![Build Status](https://travis-ci.com/motoreq/istate.svg?branch=master)](https://travis-ci.com/motoreq/istate)
 
 
 iState is a state management package for Hyperledger fabric chaincode. It can be used to perform high performance rich queries on leveldb.
